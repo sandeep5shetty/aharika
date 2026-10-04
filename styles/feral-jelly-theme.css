@@ -1,0 +1,22 @@
+/* Mint jelly palette — matches the app accent (#00BC7D / #7CCF00). */
+.feral-jelly-mint {
+  --jelly-body-top: #c9f7e8;
+  --jelly-body-mid: #5ee0b0;
+  --jelly-body-deep: #00bc7d;
+  --jelly-body-rim: #9ef0c9;
+  --jelly-outline: #2f9e6b;
+  --jelly-outline-light: #4bc492;
+  --jelly-arm-light: #b8f5d9;
+  --jelly-arm-mid: #3dc992;
+  --jelly-arm-deep: #1fa872;
+  --jelly-cheek-light: #ffd9ec;
+  --jelly-cheek: #f9a9d4;
+  --jelly-cheek-deep: #ee97c6;
+  --jelly-eye-light: #1a3d2e;
+  --jelly-eye: #0a1f16;
+  --jelly-eye-deep: #05100c;
+  --jelly-face-ink: #0a1f16;
+  --jelly-face-soft: #1a3d2e;
+  --jelly-belly-glow: #d4ffd9;
+  --jelly-eye-sparkle: #7ccf00;
+}
