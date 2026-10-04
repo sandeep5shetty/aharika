@@ -1,0 +1,23 @@
+/* Pandeka Studio — Moonet Regular. Add public/fonts/Moonet-Regular.woff2 from your license. */
+@font-face {
+  font-family: "Moonet";
+  src: url("/fonts/Moonet-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-moonet {
+  font-family: "Moonet", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+.font-moonet-wordmark {
+  font-family: "Moonet", ui-sans-serif, system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
+  font-synthesis: none;
+  letter-spacing: 0.02em;
+}

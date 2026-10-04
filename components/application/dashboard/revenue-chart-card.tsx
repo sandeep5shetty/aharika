@@ -62,6 +62,23 @@ const formatK = (value: number) => (value >= 1000 ? `$${Math.round(value / 1000)
 const formatMoney = (value: number) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+export type TrendChartFormat = {
+  formatHeadline: (value: number) => string;
+  formatComparison: (value: number, hovering: boolean) => string;
+  formatAxis: (value: number) => string;
+  legendCurrent: string;
+  legendPrevious: string;
+};
+
+const DEFAULT_TREND_FORMAT: TrendChartFormat = {
+  formatHeadline: (value) => `$${formatMoney(value)}`,
+  formatComparison: (value, hovering) =>
+    `$${formatMoney(value)} ${hovering ? "a year earlier" : "last year"}`,
+  formatAxis: formatK,
+  legendCurrent: "This year",
+  legendPrevious: "Last year",
+};
+
 function describeDelta(current: number, previous: number) {
   if (previous === 0) return { label: "New", color: "neutral" as const };
   const change = ((current - previous) / previous) * 100;
@@ -87,12 +104,14 @@ function ActiveDot({ cx: x, cy: y }: { cx?: number; cy?: number }) {
 export function RevenueChartCard({
   data = REVENUE_DATA,
   title = "Revenue",
+  valueFormat = DEFAULT_TREND_FORMAT,
   className,
 }: {
   /** Twelve points, one per month; defaults to the demo year. */
   data?: RevenuePoint[];
   /** Headline label when no month is hovered. */
   title?: string;
+  valueFormat?: TrendChartFormat;
   className?: string;
 } = {}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -128,24 +147,24 @@ export function RevenueChartCard({
               key={activeIndex ?? "total"}
               className="animate-number-fade text-title-1-medium whitespace-nowrap text-text-primary tabular-nums"
             >
-              ${formatMoney(display)}
+              {valueFormat.formatHeadline(display)}
             </p>
             <Chip variant="bold" color={delta.color}>
               {delta.label}
             </Chip>
           </div>
           <p className="text-body-2-medium text-text-tertiary tabular-nums">
-            ${formatMoney(comparison)} {point ? "a year earlier" : "last year"}
+            {valueFormat.formatComparison(comparison, Boolean(point))}
           </p>
         </div>
         <dl className="flex shrink-0 items-center gap-4 text-body-2-medium text-text-secondary">
           <div className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-chart-2-active" aria-hidden />
-            <dt>This year</dt>
+            <dt>{valueFormat.legendCurrent}</dt>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-chart-neutral" aria-hidden />
-            <dt>Last year</dt>
+            <dt>{valueFormat.legendPrevious}</dt>
           </div>
         </dl>
       </div>
@@ -172,7 +191,7 @@ export function RevenueChartCard({
               width={44}
               domain={[0, yMax * 1.1]}
               tickCount={4}
-              tickFormatter={formatK}
+              tickFormatter={valueFormat.formatAxis}
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 12, fill: "var(--color-text-tertiary)" }}

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { RiLayoutGridLine } from "@remixicon/react";
-
 import {
   AppShell,
   CatalogTierFilter,
@@ -15,7 +13,6 @@ export default function ComponentsPage() {
   return (
     <AppShell
       title="Components and Blocks"
-      icon={RiLayoutGridLine}
       actions={<CatalogTierFilter tier={tier} onChange={setTier} />}
       columnClassName="max-w-[964px]"
     >

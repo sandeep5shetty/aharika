@@ -16,25 +16,33 @@ import {
   RiCalendarLine,
   RiChatAiLine,
   RiCloseLine,
-  RiCustomerServiceLine,
+  RiChatSmile2Line,
   RiHomeLine,
   RiImageAiLine,
   RiKanbanView2,
   RiMegaphoneLine,
+  RiNotification3Line,
   RiSearchLine,
   RiSettings4Line,
   RiSideBarFill,
   RiUserSmileLine,
 } from "@remixicon/react";
-import { SettingsModal } from "@/components/application/settings/settings-modal";
+import { DailyGoalsModal } from "@/components/application/settings/daily-goals-modal";
+import {
+  SettingsModal,
+  type SettingsPage,
+} from "@/components/application/settings/settings-modal";
 import { ThemeToggle } from "@/components/application/theme/theme-toggle";
 import { Badge } from "@/components/base/badges/badge";
 import { CloseButton } from "@/components/base/buttons/close-button";
 import { Kbd } from "@/components/base/kbd/kbd";
 import { cx } from "@/utils/cx";
+import { DashboardBrandLogo } from "./dashboard-brand-logo";
 import { DashboardTeamMenu } from "./dashboard-team-menu";
-import { DashboardUserMenu } from "./dashboard-user-menu";
 
+import { FeedbackModal } from "@/components/application/feedback/feedback-modal";
+import { useNotifications } from "@/components/application/app-shell/notification-bell";
+import { OPEN_SETTINGS_EVENT } from "@/lib/settings/open-settings";
 /**
  * Figma sources:
  *   expanded  → Board UI → dashboard 1 → Sidebar (node 3731:2934)
@@ -86,6 +94,7 @@ function NavItem({
   collapsed = false,
   href = "#",
   onClick,
+  highlighted = false,
 }: {
   icon: IconComponent;
   label: string;
@@ -95,6 +104,8 @@ function NavItem({
   href?: string;
   /** Action rows (e.g. Settings → modal) intercept the navigation. */
   onClick?: () => void;
+  /** Accent treatment for secondary actions we want to stand out (e.g. Feedback). */
+  highlighted?: boolean;
 }) {
   const localize = useTemplateCopy();
   return localize((
@@ -117,19 +128,28 @@ function NavItem({
         collapsed ? "w-9" : "w-full",
         isSelected
           ? "bg-linear-to-b from-accent-500 to-accent-600 shadow-nav-selected"
-          : "hover:bg-background-secondary-hover",
+          : highlighted
+            ? "bg-accent-50 hover:bg-accent-100"
+            : "hover:bg-background-secondary-hover",
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
         <Icon
-          className={cx("size-5 shrink-0", isSelected ? "text-white" : "text-foreground-icon-secondary")}
+          className={cx(
+            "size-5 shrink-0",
+            isSelected
+              ? "text-white"
+              : highlighted
+                ? "text-accent-600"
+                : "text-foreground-icon-secondary",
+          )}
           aria-hidden
         />
         <Collapsible collapsed={collapsed}>
           <span
             className={cx(
               "text-body-medium whitespace-nowrap",
-              isSelected ? "text-white" : "text-text-secondary",
+              isSelected ? "text-white" : highlighted ? "text-accent-700" : "text-text-secondary",
             )}
           >
             {label}
@@ -141,6 +161,9 @@ function NavItem({
   ));
 }
 
+/** Opens a host modal instead of navigating. */
+export type DashboardNavAction = "daily-goals";
+
 /** A primary navigation row. Rows without an `href` are decoration only. */
 export interface DashboardNavItem {
   key: string;
@@ -148,6 +171,7 @@ export interface DashboardNavItem {
   icon: IconComponent;
   href?: string;
   badge?: string | number;
+  action?: DashboardNavAction;
 }
 
 /** Kept as a name for callers that typed their `selected` prop; any key works. */
@@ -178,37 +202,48 @@ function NavRows({
   selected,
   collapsed,
   secondaryMatch,
+  onNavAction,
 }: {
   items: DashboardNavItem[];
   query: string;
   selected: string;
   collapsed: boolean;
-  /** Whether Support or Settings matches, so "No results" only shows when nothing does. */
+  /** Whether Feedback or Settings matches, so "No results" only shows when nothing does. */
   secondaryMatch: boolean;
+  onNavAction?: (action: DashboardNavAction) => void;
 }) {
   const localize = useTemplateCopy();
   const shown = items.filter((item) => item.label.toLocaleLowerCase().includes(query));
   if (shown.length === 0 && !secondaryMatch && !collapsed) {
     return localize(<p className="px-2 py-3 text-body-regular text-text-tertiary">No results</p>);
   }
-  return shown.map((item) => {
-      const isSelected = selected === item.key;
-      return (
-        <NavItem
-          key={item.key}
-          icon={item.icon}
-          label={item.label}
-          href={item.href}
-          isSelected={isSelected}
-          collapsed={collapsed}
-          badge={
-            item.badge !== undefined ? (
-              <Badge color={isSelected ? "primary" : "neutral"}>{item.badge}</Badge>
-            ) : undefined
-          }
-        />
-      );
-    });
+  return localize(
+    <>
+      {shown.map((item) => {
+        const isSelected = selected === item.key;
+        return (
+          <NavItem
+            key={item.key}
+            icon={item.icon}
+            label={item.label}
+            href={item.href ?? "#"}
+            onClick={
+              item.action
+                ? () => onNavAction?.(item.action!)
+                : undefined
+            }
+            isSelected={isSelected}
+            collapsed={collapsed}
+            badge={
+              item.badge !== undefined ? (
+                <Badge color={isSelected ? "primary" : "neutral"}>{item.badge}</Badge>
+              ) : undefined
+            }
+          />
+        );
+      })}
+    </>,
+  );
 }
 
 export function DashboardSidebar({
@@ -220,6 +255,9 @@ export function DashboardSidebar({
   items = DASHBOARD_NAV,
   flat = false,
   className,
+  onOpenFeedback,
+  onOpenSettings,
+  onOpenDailyGoals,
 }: {
   /** Rendered inside the mobile drawer: always expanded, close button instead of collapse. */
   mobile?: boolean;
@@ -239,10 +277,51 @@ export function DashboardSidebar({
   /** Removes the floating panel treatment for a sidebar revealed beneath mobile content. */
   flat?: boolean;
   className?: string;
+  /** When set, the host renders FeedbackModal; sidebar only calls this. */
+  onOpenFeedback?: () => void;
+  /** When set, the host renders SettingsModal; sidebar only calls this. */
+  onOpenSettings?: (page: SettingsPage) => void;
+  /** When set, the host renders DailyGoalsModal; sidebar only calls this. */
+  onOpenDailyGoals?: () => void;
 } = {}) {
   const localize = useTemplateCopy();
+  const notifications = useNotifications();
   const [collapsedState, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPage, setSettingsPage] = useState<SettingsPage>("general");
+  const [dailyGoalsOpen, setDailyGoalsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  const openSettingsInternal = useCallback((page: SettingsPage) => {
+    setSettingsPage(page);
+    setSettingsOpen(true);
+  }, []);
+
+  const openSettings = onOpenSettings ?? openSettingsInternal;
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ page?: SettingsPage }>).detail;
+      openSettings(detail?.page ?? "general");
+    };
+    window.addEventListener(OPEN_SETTINGS_EVENT, handler);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, handler);
+  }, [openSettings]);
+
+  const openFeedback = useCallback(() => {
+    if (onOpenFeedback) onOpenFeedback();
+    else setFeedbackOpen(true);
+  }, [onOpenFeedback]);
+
+  const handleNavAction = useCallback(
+    (action: DashboardNavAction) => {
+      if (action === "daily-goals") {
+        if (onOpenDailyGoals) onOpenDailyGoals();
+        else setDailyGoalsOpen(true);
+      }
+    },
+    [onOpenDailyGoals],
+  );
   const [suppressUserHover, setSuppressUserHover] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [query, setQuery] = useState("");
@@ -252,7 +331,7 @@ export function DashboardSidebar({
   const collapsed = mobile ? false : collapsedState;
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (label: string) => label.toLocaleLowerCase().includes(normalizedQuery);
-  const secondaryLabels = ["Support", "Settings"];
+  const secondaryLabels = ["Feedback", "Notifications", "Settings"];
   const secondaryMatch = secondaryLabels.some(matches);
 
   const activateSearch = useCallback(() => {
@@ -348,15 +427,10 @@ export function DashboardSidebar({
                 : "max-w-[206px] scale-100 opacity-100",
             )}
           >
-            <DashboardUserMenu
+            <DashboardBrandLogo
               collapsed={collapsed}
               suppressHover={suppressUserHover}
               onHoverSuppressionEnd={() => setSuppressUserHover(false)}
-              avatarClassName={
-                flat
-                  ? "bg-background-tertiary-default dark:bg-background-secondary-default"
-                  : undefined
-              }
             />
           </div>
           {mobile && flat ? (
@@ -513,6 +587,7 @@ export function DashboardSidebar({
               selected={selected}
               collapsed={collapsed}
               secondaryMatch={secondaryMatch}
+              onNavAction={handleNavAction}
             />
           </nav>
         </div>
@@ -530,31 +605,64 @@ export function DashboardSidebar({
           ))}
         {/* Secondary nav */}
         <nav className="flex w-full flex-col gap-1">
-          {matches("Support") && (
-            <NavItem icon={RiCustomerServiceLine} label="Support" collapsed={collapsed} />
+          {matches("Feedback") && (
+            <NavItem
+              icon={RiChatSmile2Line}
+              label="Feedback"
+              collapsed={collapsed}
+              highlighted
+              onClick={openFeedback}
+            />
+          )}
+          {matches("Notifications") && (
+            <NavItem
+              icon={RiNotification3Line}
+              label="Notifications"
+              collapsed={collapsed}
+              badge={
+                notifications && notifications.unreadCount > 0 ? (
+                  <Badge color="neutral">{notifications.unreadCount}</Badge>
+                ) : undefined
+              }
+              onClick={() => {
+                if (notifications) notifications.open();
+                else openSettings("general");
+              }}
+            />
           )}
           {matches("Settings") && (
             <NavItem
               icon={RiSettings4Line}
               label="Settings"
               collapsed={collapsed}
-              onClick={() => setSettingsOpen(true)}
+              onClick={() => openSettings("general")}
             />
           )}
         </nav>
 
-        {/* Team card → opens the profile menu next to the sidebar */}
         <DashboardTeamMenu
           collapsed={collapsed}
           className={flat ? "!bg-background-secondary-default" : undefined}
+          onOpenProfile={() => openSettings("profile")}
         />
       </div>
 
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        planArtSrc="/templates/settings-plan-art.png"
-      />
+      {!onOpenSettings && (
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          defaultPage={settingsPage}
+          planArtSrc="/templates/settings-plan-art.png"
+        />
+      )}
+
+      {!onOpenDailyGoals && (
+        <DailyGoalsModal isOpen={dailyGoalsOpen} onClose={() => setDailyGoalsOpen(false)} />
+      )}
+
+      {!onOpenFeedback && (
+        <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      )}
     </aside>
   ));
 }

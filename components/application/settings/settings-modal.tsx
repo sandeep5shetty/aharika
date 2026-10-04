@@ -1,29 +1,25 @@
 "use client";
 
 import { useDirection } from "@/components/foundations/direction/direction";
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import {
-  RiBankCardLine,
-  RiBookOpenLine,
   RiCheckboxCircleFill,
   RiCloseLine,
-  RiCodeBlock,
   RiDatabase2Line,
-  RiGitMergeLine,
-  RiOrganizationChart,
-  RiPaletteLine,
-  RiPlugLine,
+  RiFileTextLine,
   RiSchoolLine,
   RiSettings6Line,
-  RiSettingsLine,
+  RiShieldCheckLine,
   RiToolsFill,
-  RiStore2Line,
 } from "@remixicon/react";
 import { cx } from "@/utils/cx";
+import { showToast } from "@/lib/notification-toast/show-toast";
+
 import { SettingsGeneral } from "./settings-general";
 import { SettingsProfile } from "./settings-profile";
 import { SettingsStorage } from "./settings-storage";
+import { SettingsPrivacy, SettingsTerms } from "./settings-legal";
 import { SettingsTools } from "./settings-tools";
 
 /**
@@ -47,7 +43,13 @@ import { SettingsTools } from "./settings-tools";
  * and the modal unmounts only after the exit transition finishes.
  */
 
-export type SettingsPage = "general" | "profile" | "storage" | "tools" | "marketplace";
+export type SettingsPage =
+  | "general"
+  | "profile"
+  | "storage"
+  | "tools"
+  | "terms"
+  | "privacy";
 
 export interface SettingsModalProps {
   /** Controlled open state, owned by the host page, sidebar, or menu. */
@@ -58,8 +60,6 @@ export interface SettingsModalProps {
   defaultPage?: SettingsPage;
   /** Optional product artwork used by the animated Current plan card. */
   planArtSrc?: string;
-  /** Optional marketplace pane, including its own fixed header and scroll region. */
-  marketplace?: ReactNode;
 }
 
 type IconComponent = ComponentType<{
@@ -80,27 +80,15 @@ const NAV_GROUPS: { label: string; items: NavEntry[] }[] = [
     items: [
       { label: "General", icon: RiSettings6Line, page: "general" },
       { label: "Profile", icon: RiSchoolLine, page: "profile" },
-      { label: "Marketplace", icon: RiStore2Line, page: "marketplace" },
-      { label: "Appearance", icon: RiPaletteLine },
-      { label: "Billing", icon: RiBankCardLine },
-      { label: "Rules and Workflows", icon: RiOrganizationChart },
       { label: "Tools", icon: RiToolsFill, page: "tools" },
       { label: "Storage", icon: RiDatabase2Line, page: "storage" },
     ],
   },
   {
-    label: "Desktop app",
+    label: "Legal",
     items: [
-      { label: "General", icon: RiSettingsLine },
-      { label: "Plugins", icon: RiPlugLine },
-      { label: "Developer", icon: RiCodeBlock },
-    ],
-  },
-  {
-    label: "Customize",
-    items: [
-      { label: "Skills", icon: RiBookOpenLine },
-      { label: "Git", icon: RiGitMergeLine },
+      { label: "Terms of service", icon: RiFileTextLine, page: "terms" },
+      { label: "Privacy policy", icon: RiShieldCheckLine, page: "privacy" },
     ],
   },
 ];
@@ -110,7 +98,8 @@ const PAGE_TITLES: Record<SettingsPage, string> = {
   profile: "Profile",
   storage: "Storage",
   tools: "Tools",
-  marketplace: "Marketplace",
+  terms: "Terms of service",
+  privacy: "Privacy policy",
 };
 
 export function SettingsModal({
@@ -118,7 +107,6 @@ export function SettingsModal({
   onClose,
   defaultPage = "general",
   planArtSrc,
-  marketplace,
 }: SettingsModalProps) {
   const direction = useDirection();
   const [page, setPage] = useState<SettingsPage>(defaultPage);
@@ -137,6 +125,11 @@ export function SettingsModal({
   const [savedPhase, setSavedPhase] = useState<"hidden" | "shown" | "leaving">("hidden");
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showSavedToast = () => {
+    showToast({
+      title: "Changes saved",
+      description: "Your profile settings were updated.",
+      status: "success",
+    });
     if (savedTimer.current) clearTimeout(savedTimer.current);
     setSavedPhase("shown");
     savedTimer.current = setTimeout(() => {
@@ -168,8 +161,7 @@ export function SettingsModal({
       if (unmountTimer.current) clearTimeout(unmountTimer.current);
       if (savedTimer.current) clearTimeout(savedTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultPage only matters at the open transition
-  }, [isOpen]);
+  }, [isOpen, defaultPage]);
 
   // Escape closes; focus moves into the dialog on open.
   useEffect(() => {
@@ -237,7 +229,7 @@ export function SettingsModal({
             <div key={group.label} className="flex w-full flex-col gap-1.5 pt-1">
               <span className="hidden ps-2 text-body-medium text-text-secondary sm:block">{group.label}</span>
               <div className="flex w-full flex-col gap-1">
-                {group.items.filter(item => item.page !== "marketplace" || marketplace != null).map((item) => {
+                {group.items.map((item) => {
                   const selected = item.page !== undefined && item.page === page;
                   return (
                     <button
@@ -281,7 +273,6 @@ export function SettingsModal({
 
         {/* Content pane — fixed title row, scrollable page below */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {page === "marketplace" && marketplace != null ? marketplace : <>
           {/* Storage keeps a tighter title gap: its page already carries
               10px of scroll-safe headroom for the upload progress badge, so
               the shared pb-3 read as a double margin above the dropzone. */}
@@ -317,6 +308,10 @@ export function SettingsModal({
                 <SettingsStorage />
               ) : page === "tools" ? (
                 <SettingsTools />
+              ) : page === "terms" ? (
+                <SettingsTerms />
+              ) : page === "privacy" ? (
+                <SettingsPrivacy />
               ) : (
                 <SettingsGeneral planArtSrc={planArtSrc} />
               )}
@@ -332,7 +327,6 @@ export function SettingsModal({
               )}
             />
           </div>
-          </>}
         </div>
       </div>
 

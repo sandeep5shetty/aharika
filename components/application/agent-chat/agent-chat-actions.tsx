@@ -2,8 +2,8 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
-import { RiCheckLine, RiMoreFill, RiUploadLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { RiMoreFill } from "@remixicon/react";
+import { useState } from "react";
 
 import {
   Dropdown,
@@ -14,20 +14,8 @@ import {
 } from "@/components/base/dropdown/dropdown";
 import { cx } from "@/utils/cx";
 
-/**
- * The controls in the top right of the chat surface: share the open chat, and
- * a menu of the actions that apply to it.
- *
- * Every entry does something the starter can actually do — copy, download,
- * mark, delete. Nothing here is a placeholder waiting on a backend, because a
- * control that looks live and does nothing is worse than no control.
- */
-
+/** Chat header overflow menu (delete current thread). */
 export interface AgentChatActionsProps {
-  /** Plain-text transcript of the open chat, for share and copy. */
-  transcript: string;
-  onExport: () => void;
-  onToggleUnread: () => void;
   onDelete: () => void;
   /** No chat open yet, so there is nothing to act on. */
   disabled?: boolean;
@@ -35,39 +23,12 @@ export interface AgentChatActionsProps {
 }
 
 export function AgentChatActions({
-  transcript,
-  onExport,
-  onToggleUnread,
   onDelete,
   disabled = false,
   className,
 }: AgentChatActionsProps) {
   const localize = useTemplateCopy();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [shared, setShared] = useState(false);
-
-  useEffect(() => {
-    if (!shared) return;
-    const timer = setTimeout(() => setShared(false), 1600);
-    return () => clearTimeout(timer);
-  }, [shared]);
-
-  const share = async () => {
-    if (!transcript) return;
-    // The Web Share sheet where the browser has one, the clipboard everywhere
-    // else. Both leave the transcript on the device.
-    try {
-      if (navigator.share) {
-        await navigator.share({ text: transcript });
-        return;
-      }
-      await navigator.clipboard.writeText(transcript);
-      setShared(true);
-    } catch {
-      // A dismissed share sheet and a refused clipboard both land here, and
-      // neither is worth interrupting the reader over.
-    }
-  };
 
   const choose = (action: () => void) => () => {
     setMenuOpen(false);
@@ -76,22 +37,6 @@ export function AgentChatActions({
 
   return localize((
     <div className={cx("flex shrink-0 items-center gap-0.5", className)}>
-      <button
-        type="button"
-        onClick={share}
-        disabled={disabled ? true : false}
-        suppressHydrationWarning
-        aria-label={shared ? "Transcript copied" : "Share chat"}
-        title={shared ? "Transcript copied" : "Share chat"}
-        className={ACTION_BUTTON}
-      >
-        {shared ? (
-          <RiCheckLine className="size-[18px] shrink-0" aria-hidden />
-        ) : (
-          <RiUploadLine className="size-[18px] shrink-0" aria-hidden />
-        )}
-      </button>
-
       <Dropdown isOpen={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownTrigger
           aria-label="More actions for this chat"
@@ -107,16 +52,6 @@ export function AgentChatActions({
           className="w-[190px] p-2"
         >
           <DropdownGroup>
-            <DropdownItem onSelect={choose(onExport)} className="px-2 py-1.5">
-              <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
-                Export chats
-              </span>
-            </DropdownItem>
-            <DropdownItem onSelect={choose(onToggleUnread)} className="px-2 py-1.5">
-              <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
-                Mark as unread
-              </span>
-            </DropdownItem>
             <DropdownItem onSelect={choose(onDelete)} className="px-2 py-1.5">
               <span className="truncate text-body-medium whitespace-nowrap text-text-error-primary">
                 Delete chat

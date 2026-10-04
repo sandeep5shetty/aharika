@@ -11,6 +11,15 @@ import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cx } from "@/utils/cx";
 
 const SIZE_PX = {
+  xs: 32,
+  /** Profile avatar md (32px). */
+  avatar: 32,
+  /** Profile avatar lg (36px). */
+  avatarLg: 36,
+  /** Sidebar brand row — between avatar md (32) and compact auth sm (72). */
+  sidebar: 52,
+  /** Collapsed rail (36px column). */
+  sidebarCollapsed: 36,
   sm: 72,
   md: 96,
   lg: 128,

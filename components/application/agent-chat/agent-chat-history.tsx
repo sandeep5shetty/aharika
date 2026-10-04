@@ -2,32 +2,26 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
-import { useRouter } from "next/navigation";
-
-import { useStarterBase } from "@/components/application/app-shell/app-shell";
 import {
   RiAddLine,
-  RiDownloadLine,
-  RiGlobalLine,
-  RiLogoutBoxRLine,
+  RiCustomerServiceLine,
+  RiFileTextLine,
   RiMore2Fill,
-  RiSendPlaneLine,
-  RiSettings3Line,
-  RiSpeedUpLine,
+  RiQuestionLine,
+  RiShieldCheckLine,
 } from "@remixicon/react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import { Avatar } from "@/components/base/avatar/avatar";
+import type { SettingsPage } from "@/components/application/settings/settings-modal";
+
 import {
   Dropdown,
   DropdownGroup,
-  DropdownDivider,
   DropdownItem,
   DropdownPopover,
   DropdownTrigger,
 } from "@/components/base/dropdown/dropdown";
 import { ChevronDownSmall } from "@/components/foundations/icons/chevrons";
-import { useHasMounted } from "@/hooks/use-has-mounted";
 import { cx } from "@/utils/cx";
 
 /**
@@ -37,9 +31,8 @@ import { cx } from "@/utils/cx";
  * section label, then a list of items with a relative-time badge — so the two
  * rails read as the same system from opposite sides of the workspace.
  *
- * Threads are held by the parent and kept in the visitor's own browser. That
- * is the honest ceiling for a starter with no database: hosted history across
- * devices is what a backend buys you, and this is the free version of it.
+ * Threads are loaded from the server for the signed-in user; unread badges are
+ * session-only UI state on top of that list.
  */
 
 export interface ChatThreadSummary {
@@ -57,10 +50,13 @@ export interface AgentChatHistoryProps {
   onRename: (id: string, title: string) => void;
   onToggleUnread: (id: string) => void;
   onDelete: (id: string) => void;
-  /** Downloads the stored chats as JSON. */
-  onExport: () => void;
   /** Disables switching mid-stream, which would strand the running response. */
   disabled?: boolean;
+  /** Guest trial: only one chat allowed. */
+  disableNewChat?: boolean;
+  onNewChatBlocked?: () => void;
+  onOpenFeedback?: () => void;
+  onOpenSettings?: (page: SettingsPage) => void;
   className?: string;
 }
 
@@ -72,8 +68,11 @@ export function AgentChatHistory({
   onRename,
   onToggleUnread,
   onDelete,
-  onExport,
   disabled = false,
+  disableNewChat = false,
+  onNewChatBlocked,
+  onOpenFeedback,
+  onOpenSettings,
   className,
 }: AgentChatHistoryProps) {
   const localize = useTemplateCopy();
@@ -91,7 +90,13 @@ export function AgentChatHistory({
     >
       <button
         type="button"
-        onClick={onNewChat}
+        onClick={() => {
+          if (disableNewChat) {
+            onNewChatBlocked?.();
+            return;
+          }
+          onNewChat();
+        }}
         disabled={disabled}
         className="flex w-full cursor-pointer items-center gap-2 rounded-2lg px-2 py-2 text-body-medium text-text-primary transition-colors hover:bg-background-secondary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -122,207 +127,86 @@ export function AgentChatHistory({
         )}
       </div>
 
-      <RailFooter threads={threads} onExport={onExport} />
+      <RailHelpFooter onOpenFeedback={onOpenFeedback} onOpenSettings={onOpenSettings} />
     </aside>
   ));
 }
 
-/**
- * The account strip along the bottom of the rail.
- *
- * The trailing control downloads the stored chats as JSON. It does something
- * real on purpose — this rail's whole premise is that history lives in the
- * visitor's own browser, and the one thing that premise owes them is a way to
- * take it with them.
- */
-function RailFooter({
-  threads,
-  onExport,
+/** Help-only footer on the history rail (account & export live on the left sidebar). */
+function RailHelpFooter({
+  onOpenFeedback,
+  onOpenSettings,
 }: {
-  threads: ChatThreadSummary[];
-  onExport: () => void;
+  onOpenFeedback?: () => void;
+  onOpenSettings?: (page: SettingsPage) => void;
 }) {
   const localize = useTemplateCopy();
-  const hasMounted = useHasMounted();
-  const count = threads.length;
-  const exportDisabled = !hasMounted || count === 0;
-  const label = count === 0 ? "No chats to export" : `Export ${count} chats`;
-  return localize((
-    <div className="mt-auto flex items-center gap-1 border-t border-separator-border pt-3 pe-1">
-      <AccountMenu threads={threads} />
-      <button
-        type="button"
-        onClick={onExport}
-        disabled={exportDisabled ? true : false}
-        aria-label={label}
-        title={label}
-        suppressHydrationWarning
-        className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <RiDownloadLine className="size-3.5 shrink-0" aria-hidden />
-      </button>
-    </div>
-  ));
-}
-
-/** The rail keeps at most this many chats, which is what makes "chats" a real
- *  quota rather than a decorative percentage. Mirrors MAX_THREADS in the shell. */
-const THREAD_CAPACITY = 30;
-/** localStorage is about 5MB in practice; enough to make the number mean something. */
-const STORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
-
-/**
- * The account switcher at the foot of the rail: avatar, name, chevron, and a
- * grouped menu built from the same pieces as the app sidebar's team card, so
- * the two read as one system.
- *
- * "Usage left" expands in place. Its numbers are the starter's actual
- * limits — how many of the retained chats are used, and how much of the
- * browser's storage they occupy — rather than invented percentages, so the row
- * still means something once this ships inside someone else's app.
- */
-function AccountMenu({ threads }: { threads: ChatThreadSummary[] }) {
-  const localize = useTemplateCopy();
   const [isOpen, setIsOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
-  const [storedBytes, setStoredBytes] = useState(0);
-  const close = () => setIsOpen(false);
-  const router = useRouter();
-  const base = useStarterBase();
-  const logOut = () => {
-    close();
-    router.push(`${base}/login`);
-  };
 
-  const chatPercent = Math.min(100, Math.round((threads.length / THREAD_CAPACITY) * 100));
-  const storagePercent = Math.min(100, Math.round((storedBytes / STORAGE_BUDGET_BYTES) * 100));
-
-  const toggleUsage = () => {
-    // Measured when the section opens rather than on every render: it reads
-    // localStorage, which is outside React and not free.
-    if (!usageOpen) setStoredBytes(measureStoredBytes());
-    setUsageOpen((open) => !open);
+  /** Run after the help menu closes so the popover does not swallow the action. */
+  const runAfterClose = (action: () => void) => {
+    setIsOpen(false);
+    window.setTimeout(action, 0);
   };
 
   return localize((
-    <Dropdown
-      isOpen={isOpen}
-      onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open) setUsageOpen(false);
-      }}
-    >
-      <DropdownTrigger
-        aria-label="Mertcan Esmergul account menu"
-        className={cx(
-          "flex min-w-0 flex-1 items-center gap-2 rounded-2lg px-1 py-1 text-start",
-          "transition-colors hover:bg-background-secondary-hover",
-          isOpen && "bg-background-secondary-hover",
-        )}
-      >
-        <Avatar size="sm" initials="M" color="neutral" alt="Mertcan Esmergul" />
-        <span className="min-w-0 flex-1 truncate text-body-2-medium text-text-primary">
-          Mertcan Esmergul
-        </span>
-      </DropdownTrigger>
-
-      <DropdownPopover
-        aria-label="Account menu"
-        placement="top start"
-        className="w-[248px] p-2.5"
-        dialogClassName="gap-[7px]"
-      >
-        <DropdownGroup>
-          <button
-            type="button"
-            onClick={toggleUsage}
-            aria-expanded={usageOpen}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-2lg px-2 py-1.5 text-start transition-colors hover:bg-background-secondary-default"
-          >
-            <RiSpeedUpLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
-            <span className="flex-1 truncate text-body-medium whitespace-nowrap text-text-primary">
-              Usage left
-            </span>
-            <ChevronDownSmall
-              className={cx(
-                "size-4 shrink-0 text-foreground-icon-secondary transition-transform duration-150",
-                usageOpen && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
-
-          {usageOpen && (
-            <div className="flex flex-col gap-1 pb-1">
-              <UsageRow label="Chats" value={`${threads.length} of ${THREAD_CAPACITY}`} percent={chatPercent} />
-              <UsageRow label="Storage" value={formatBytes(storedBytes)} percent={storagePercent} />
-              <button
-                type="button"
-                onClick={close}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-2lg py-1 pe-2 ps-9 text-start transition-colors hover:bg-background-secondary-default"
-              >
-                <span className="flex-1 truncate text-body-2-medium whitespace-nowrap text-text-primary">
-                  Upgrade to Max
-                </span>
-                <RiGlobalLine className="size-4 shrink-0 text-foreground-icon-tertiary" aria-hidden />
-              </button>
-            </div>
+    <div className="mt-auto border-t border-separator-border pt-3">
+      <Dropdown isOpen={isOpen} onOpenChange={setIsOpen}>
+        <DropdownTrigger
+          aria-label="Help"
+          className={cx(
+            "flex w-full items-center gap-2 rounded-2lg px-2 py-2 text-start",
+            "transition-colors hover:bg-background-secondary-hover",
+            isOpen && "bg-background-secondary-hover",
           )}
+        >
+          <RiQuestionLine className="size-5 shrink-0 text-foreground-icon-secondary" aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-body-medium text-text-primary">Help</span>
+          <ChevronDownSmall
+            className={cx(
+              "size-4 shrink-0 text-foreground-icon-secondary transition-transform duration-150",
+              isOpen && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </DropdownTrigger>
 
-          <DropdownItem onSelect={close} className="px-2 py-1.5">
-            <RiSendPlaneLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
-            <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
-              Invite a friend
-            </span>
-          </DropdownItem>
-          <DropdownItem onSelect={close} className="px-2 py-1.5">
-            <RiSettings3Line className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
-            <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
-              Settings
-            </span>
-          </DropdownItem>
-        </DropdownGroup>
-
-        <DropdownDivider />
-
-        <DropdownGroup>
-          <DropdownItem onSelect={logOut} className="px-2 py-1.5">
-            <RiLogoutBoxRLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
-            <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
-              Log out
-            </span>
-          </DropdownItem>
-        </DropdownGroup>
-      </DropdownPopover>
-    </Dropdown>
-  ));
-}
-
-/** A measured line under "Usage left": what it is, how much, how full. */
-function UsageRow({ label, value, percent }: { label: string; value: string; percent: number }) {
-  const localize = useTemplateCopy();
-  return localize((
-    <div className="flex items-center gap-2 py-0.5 pe-2 ps-9">
-      <span className="flex-1 truncate text-body-2-medium text-text-primary">{label}</span>
-      <span className="shrink-0 text-body-2-regular text-text-secondary">{value}</span>
-      <span className="w-9 shrink-0 text-end text-body-2-regular text-text-tertiary">{percent}%</span>
+        <DropdownPopover
+          aria-label="Help"
+          placement="top start"
+          className="w-[248px] p-2.5"
+        >
+          <DropdownGroup>
+            <DropdownItem
+              onSelect={() => runAfterClose(() => onOpenFeedback?.())}
+              className="px-2 py-1.5"
+            >
+              <RiCustomerServiceLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
+              <span className="truncate text-body-medium whitespace-nowrap text-text-primary">Contact us</span>
+            </DropdownItem>
+            <DropdownItem
+              onSelect={() => runAfterClose(() => onOpenSettings?.("terms"))}
+              className="px-2 py-1.5"
+            >
+              <RiFileTextLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
+              <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
+                Terms of service
+              </span>
+            </DropdownItem>
+            <DropdownItem
+              onSelect={() => runAfterClose(() => onOpenSettings?.("privacy"))}
+              className="px-2 py-1.5"
+            >
+              <RiShieldCheckLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
+              <span className="truncate text-body-medium whitespace-nowrap text-text-primary">
+                Privacy policy
+              </span>
+            </DropdownItem>
+          </DropdownGroup>
+        </DropdownPopover>
+      </Dropdown>
     </div>
   ));
-}
-
-/** Bytes the stored chats occupy. UTF-16 in storage, so two bytes a character. */
-function measureStoredBytes() {
-  try {
-    return (window.localStorage.getItem("boardui:agent-chat-threads")?.length ?? 0) * 2;
-  } catch {
-    return 0;
-  }
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function ThreadRow({

@@ -24,6 +24,9 @@ export function ProPromptCard({
   onDismiss,
   backdrop,
   backdropHeight = 120,
+  leading,
+  dismissible = true,
+  placement = "corner",
   "aria-label": ariaLabel = "BoardUI Pro",
   dismissLabel = "Dismiss",
   className,
@@ -36,19 +39,35 @@ export function ProPromptCard({
   /** Light across the top, masked out before it reaches the copy. */
   backdrop?: ReactNode;
   backdropHeight?: number;
+  /** Replaces the default BoardUI Pro mark row when set. */
+  leading?: ReactNode;
+  dismissible?: boolean;
+  /** Corner toast (default) or centered card inside a modal shell. */
+  placement?: "corner" | "center";
   "aria-label"?: string;
   dismissLabel?: string;
   className?: string;
 }) {
   const localize = useTemplateCopy();
+  const isCenter = placement === "center";
+
   return localize((
     <motion.aside
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 1.2, ease: "easeOut" }}
+      initial={isCenter ? { opacity: 0, scale: 0.96, y: 10 } : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={
+        isCenter
+          ? { duration: 0.28, ease: "easeOut" }
+          : { duration: 0.3, delay: 1.2, ease: "easeOut" }
+      }
       aria-label={ariaLabel}
+      role={isCenter ? "dialog" : undefined}
+      aria-modal={isCenter ? true : undefined}
       className={cx(
-        "fixed inset-x-3 bottom-3 z-60 flex w-auto flex-col items-start gap-3 overflow-hidden rounded-2xl border border-border-button-white bg-background-secondary-default p-4 shadow-waitlist sm:inset-x-auto sm:start-3 sm:w-[280px]",
+        "flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-border-button-white bg-background-secondary-default p-4 shadow-waitlist",
+        isCenter
+          ? "relative z-10 w-full max-w-sm"
+          : "fixed inset-x-3 bottom-3 z-60 w-auto sm:inset-x-auto sm:start-3 sm:w-[280px]",
         className,
       )}
     >
@@ -65,10 +84,12 @@ export function ProPromptCard({
           <div className="absolute inset-0 bg-linear-to-br from-accent-200 via-accent-100 to-transparent opacity-70" />
         )}
       </div>
-      <div className="relative flex shrink-0 items-end gap-2">
-        <FeralBlobLogo size="sm" mood="happy" />
-        <ProLogoMark scale={40 / 56} animated className="relative" />
-      </div>
+      {leading ?? (
+        <div className="relative flex shrink-0 items-end gap-2">
+          <FeralBlobLogo size="sm" mood="happy" />
+          <ProLogoMark scale={40 / 56} animated className="relative" />
+        </div>
+      )}
       <div className="relative flex min-w-0 flex-col gap-1">
         <p className="text-body-medium text-text-primary">{title}</p>
         <p className="text-body-2-regular text-text-secondary">{description}</p>
@@ -83,12 +104,14 @@ export function ProPromptCard({
           <span className="bui-badge-shimmer absolute inset-y-0 -left-[55%] w-[45%] bg-linear-to-r from-transparent via-white/40 to-transparent" />
         </span>
       </div>
-      <CloseButton
-        size="xs"
-        aria-label={dismissLabel}
-        onClick={onDismiss}
-        className="absolute top-3 end-3 z-10"
-      />
+      {dismissible ? (
+        <CloseButton
+          size="xs"
+          aria-label={dismissLabel}
+          onClick={onDismiss}
+          className="absolute top-3 end-3 z-10"
+        />
+      ) : null}
     </motion.aside>
   ));
 }

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./theme.css";
 @import "./typography.css";
+@import "./moonet.css";
 
 /* ---------------------------------------------------------------------------
  * Dark mode strategy
@@ -20,6 +21,12 @@
  * Tailwind's ancestor-based defaults also match inside an opposing region. */
 @custom-variant rtl (&:dir(rtl));
 @custom-variant ltr (&:dir(ltr));
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
 
 /* The next theme is revealed by ThemeToggle from the exact interaction point.
  * Native view-transition crossfades are disabled so only the soft circular

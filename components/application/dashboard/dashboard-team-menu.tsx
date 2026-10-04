@@ -1,45 +1,25 @@
 "use client";
 
-import { useTemplateCopy, useTemplateLanguageSelector } from "@/components/foundations/template-copy/template-copy";
+import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
 import { useDirection } from "@/components/foundations/direction/direction";
 import { useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
-import {
-  RiBankCardLine,
-  RiBankLine,
-  RiBox3Line,
-  RiFolder6Line,
-  RiGroupLine,
-  RiLogoutBoxRLine,
-  RiMessage2Line,
-  RiNotification3Line,
-  RiPaletteLine,
-  RiSchoolLine,
-  RiShieldUserLine,
-} from "@remixicon/react";
+import { RiLogoutBoxRLine, RiShieldUserLine } from "@remixicon/react";
 import {
   Button as AriaButton,
   Dialog as AriaDialog,
   DialogTrigger as AriaDialogTrigger,
   Popover as AriaPopover,
 } from "react-aria-components";
-import { ThemeToggle } from "@/components/application/theme/theme-toggle";
-import { Avatar } from "@/components/base/avatar/avatar";
-import { Badge } from "@/components/base/badges/badge";
+import { useSession } from "next-auth/react";
+import {
+  UserProfileBlob,
+  userBlobSeedFromSession,
+} from "@/components/application/user/user-profile-blob";
 import { ChevronDownSmall } from "@/components/foundations/icons/chevrons";
+import { useLogOutConfirm } from "@/components/application/auth/log-out-confirm-provider";
+import { guestRegex } from "@/lib/constants";
 import { cx } from "@/utils/cx";
-
-/**
- * Figma source: Board UI → sidebar profile menu (node 3823:3699).
- *
- * Dropdown opened from the sidebar's "Board team" card. Floats to the right of
- * the sidebar: white panel, 1px border/button/default, radius 16, p 10,
- * shadow/dropdown. Header (team avatar + name/email), three grouped sections of
- * sidebar-style rows separated by full-bleed dividers, and a "BoardUI" + version
- * footer. Rows mirror the sidebar nav item pattern (icon + label + optional
- * counter) but use the menu tokens from Figma (text/primary label,
- * background/primary/hover on hover + the selected row).
- */
 
 type IconComponent = ComponentType<{
   className?: string;
@@ -47,47 +27,44 @@ type IconComponent = ComponentType<{
 }>;
 
 type MenuRow = {
+  id: "profile" | "sign-out";
   icon: IconComponent;
   label: string;
-  badge?: string;
-  isSelected?: boolean;
 };
 
-type MenuGroup = {
-  id: string;
-  label?: string;
-  items: MenuRow[];
-};
-
-const GROUPS: MenuGroup[] = [
-  {
-    id: "workspace",
-    items: [
-      { icon: RiBankLine, label: "View team profile" },
-      { icon: RiFolder6Line, label: "Folders" },
-      { icon: RiMessage2Line, label: "Messages", badge: "94" },
-      { icon: RiGroupLine, label: "People" },
-    ],
-  },
-  {
-    id: "company",
-    label: "Company",
-    items: [
-      { icon: RiBankCardLine, label: "Billing" },
-      { icon: RiSchoolLine, label: "Company Details" },
-      { icon: RiBox3Line, label: "Integrations" },
-    ],
-  },
-  {
-    id: "personal",
-    label: "Personal",
-    items: [
-      { icon: RiNotification3Line, label: "Notifications" },
-      { icon: RiShieldUserLine, label: "Account Details" },
-      { icon: RiLogoutBoxRLine, label: "Sign out" },
-    ],
-  },
+const MENU_ITEMS: MenuRow[] = [
+  { id: "profile", icon: RiShieldUserLine, label: "Profile" },
+  { id: "sign-out", icon: RiLogoutBoxRLine, label: "Sign out" },
 ];
+
+export function accountDisplayFromSession(
+  session: ReturnType<typeof useSession>["data"],
+) {
+  const user = session?.user;
+  const isGuest = user?.type === "guest";
+  const email = user?.email ?? "";
+  const guestEmail = guestRegex.test(email);
+
+  if (isGuest || guestEmail) {
+    return {
+      displayName: "Guest",
+      displayEmail: "Trial visitor — create an account to save meals",
+      blobSeed: userBlobSeedFromSession(user),
+      avatarSrc: undefined as string | undefined,
+    };
+  }
+
+  const displayName =
+    user?.name?.trim() ||
+    (email.includes("@") ? email.split("@")[0] : "Account");
+
+  return {
+    displayName,
+    displayEmail: email,
+    blobSeed: userBlobSeedFromSession(user),
+    avatarSrc: user?.image ?? undefined,
+  };
+}
 
 /** Label/chevron slot on the trigger: blurs + fades away as the rail collapses. */
 function Collapsible({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
@@ -104,32 +81,25 @@ function Collapsible({ collapsed, children }: { collapsed: boolean; children: Re
   ));
 }
 
-function TeamMenuItem({ icon: Icon, label, badge, isSelected, onSelect }: MenuRow & { onSelect: () => void }) {
+function TeamMenuItem({
+  icon: Icon,
+  label,
+  onSelect,
+}: MenuRow & { onSelect: () => void }) {
   const localize = useTemplateCopy();
   return localize((
     <AriaButton
       type="button"
-      aria-current={isSelected ? "page" : undefined}
       onPress={onSelect}
       className={cx(
         "flex w-full cursor-pointer items-center gap-2.5 rounded-2lg p-2 text-start outline-none transition-colors",
-        isSelected
-          ? "bg-background-primary-hover"
-          : "hover:bg-background-primary-hover focus-visible:bg-background-primary-hover",
+        "hover:bg-background-primary-hover focus-visible:bg-background-primary-hover",
       )}
     >
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <Icon className="size-5 shrink-0 text-foreground-icon-secondary" aria-hidden />
         <span className="truncate text-body-medium text-text-primary">{label}</span>
       </span>
-      {badge && (
-        <Badge
-          color="neutral"
-          className="bg-team-menu-count-background text-team-menu-count-foreground"
-        >
-          {badge}
-        </Badge>
-      )}
     </AriaButton>
   ));
 }
@@ -144,27 +114,36 @@ const subscribeMobile = (listener: () => void) => {
 export function DashboardTeamMenu({
   collapsed = false,
   className,
-  showThemeToggle = false,
+  onOpenProfile,
 }: {
   collapsed?: boolean;
   className?: string;
-  /** Show appearance controls inside the menu instead of the sidebar. */
-  showThemeToggle?: boolean;
+  /** Opens settings on the Profile pane (same as Settings → Profile). */
+  onOpenProfile?: () => void;
 }) {
   const localize = useTemplateCopy();
-  const languageSelector = useTemplateLanguageSelector();
   const direction = useDirection();
+  const { data: session } = useSession();
+  const account = accountDisplayFromSession(session);
   const [isOpen, setIsOpen] = useState(false);
-  // "right" placement assumes room to the sidebar's right (true in-flow on
-  // desktop) — on mobile the sidebar can span the full viewport, so the
-  // 265px panel would render off-screen. Below sm, drop into a plain
-  // dropdown under the trigger instead.
+  const { openLogOutConfirm } = useLogOutConfirm();
   const isMobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
+
+  const handleItem = (id: MenuRow["id"]) => {
+    setIsOpen(false);
+    if (id === "profile") {
+      onOpenProfile?.();
+      return;
+    }
+    if (id === "sign-out") {
+      openLogOutConfirm();
+    }
+  };
 
   return localize((
     <AriaDialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
       <AriaButton
-        aria-label="Board team"
+        aria-label="Account menu"
         className={cx(
           "flex cursor-pointer items-center overflow-hidden outline-none",
           "border-2 border-transparent hover:border-border-button-hover",
@@ -177,11 +156,20 @@ export function DashboardTeamMenu({
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
-          <Avatar size="md" color="blue" src="/brand/boardui_logo_circle.webp" alt="Board team" />
+          <UserProfileBlob
+            size="md"
+            seed={account.blobSeed}
+            src={account.avatarSrc}
+            alt={account.displayName}
+          />
           <Collapsible collapsed={collapsed}>
             <span className="flex min-w-0 flex-col items-start justify-center">
-              <span className="text-body-medium whitespace-nowrap text-text-primary">Board team</span>
-              <span className="text-body-regular whitespace-nowrap text-text-secondary">hi@boardui.com</span>
+              <span className="max-w-[9.5rem] truncate text-body-medium text-text-primary">
+                {account.displayName}
+              </span>
+              <span className="max-w-[9.5rem] truncate text-body-regular text-text-secondary">
+                {account.displayEmail}
+              </span>
             </span>
           </Collapsible>
         </span>
@@ -205,63 +193,31 @@ export function DashboardTeamMenu({
           "data-[exiting]:opacity-0 data-[exiting]:scale-95 data-[exiting]:blur-[2px]",
         )}
       >
-        <AriaDialog aria-label="Board team menu" className="flex flex-col gap-[7px] outline-none">
-          {/* Header */}
+        <AriaDialog aria-label="Account menu" className="flex flex-col gap-[7px] outline-none">
           <div className="flex w-full items-center gap-2 px-2 pt-1">
-            <Avatar size="md" color="blue" src="/brand/boardui_logo_circle.webp" alt="Board team" />
+            <UserProfileBlob
+              size="md"
+              seed={account.blobSeed}
+              src={account.avatarSrc}
+              alt={account.displayName}
+            />
             <div className="flex min-w-0 flex-col items-start justify-center">
-              <span className="text-body-medium whitespace-nowrap text-text-primary">Board team</span>
-              <span className="text-body-regular whitespace-nowrap text-text-secondary">hi@boardui.com</span>
+              <span className="max-w-[12rem] truncate text-body-medium text-text-primary">
+                {account.displayName}
+              </span>
+              <span className="max-w-[12rem] truncate text-body-regular text-text-secondary">
+                {account.displayEmail}
+              </span>
             </div>
           </div>
 
-          {/* Grouped sidebar-style rows */}
-          <div className="flex w-full flex-col">
-            {GROUPS.map((group, index) => (
-              <Group key={group.id} group={group} showDivider={index > 0} onSelect={() => setIsOpen(false)}>
-                {showThemeToggle && group.id === "personal" && (
-                  <div className="flex w-full items-center justify-between gap-2.5 rounded-2lg px-2 py-1">
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      <RiPaletteLine className="size-5 shrink-0 text-foreground-icon-secondary" aria-hidden />
-                      <span className="truncate text-body-medium text-text-primary">Appearance</span>
-                    </span>
-                    <ThemeToggle appearance="segmented" size="small" className="shrink-0" />
-                  </div>
-                )}
-                {group.id === "personal" && languageSelector}
-              </Group>
+          <div className="flex w-full flex-col gap-1 pt-1">
+            {MENU_ITEMS.map((item) => (
+              <TeamMenuItem key={item.id} {...item} onSelect={() => handleItem(item.id)} />
             ))}
-          </div>
-
-          {/* Footer */}
-          <div className="flex w-full items-center justify-between px-2 pt-1 pb-2">
-            <span className="text-body-2-medium whitespace-nowrap text-text-tertiary">BoardUI</span>
-            <span className="inline-flex items-center justify-center rounded-sm bg-background-tertiary-default px-1 py-px text-body-2-medium whitespace-nowrap text-text-tertiary">
-              v1.0.1
-            </span>
           </div>
         </AriaDialog>
       </AriaPopover>
     </AriaDialogTrigger>
-  ));
-}
-
-function Group({ group, showDivider, onSelect, children }: { group: MenuGroup; showDivider: boolean; onSelect: () => void; children?: ReactNode }) {
-  const localize = useTemplateCopy();
-  return localize((
-    <>
-      {showDivider && <div className="-mx-2.5 my-2.5 h-px bg-border-button-default" />}
-      <div className={cx("flex w-full flex-col gap-1", group.label && "gap-1.5 pt-1")}>
-        {group.label && (
-          <span className="px-2 text-body-medium text-text-secondary">{group.label}</span>
-        )}
-        <div className="flex w-full flex-col gap-1">
-          {group.items.map((item) => (
-            <TeamMenuItem key={item.label} {...item} onSelect={onSelect} />
-          ))}
-          {children}
-        </div>
-      </div>
-    </>
   ));
 }

@@ -152,6 +152,7 @@ export function Button({
   className,
   type = "button",
   ref,
+  disabled,
   ...props
 }: ButtonProps) {
   return (
@@ -166,6 +167,7 @@ export function Button({
         className,
       )}
       {...props}
+      disabled={disabled === true}
     >
       {Leading ? <Leading className={cx(styles.icon[size], directionalIconClass(Leading))} aria-hidden /> : null}
       {!iconOnly && children !== undefined && children !== null && (

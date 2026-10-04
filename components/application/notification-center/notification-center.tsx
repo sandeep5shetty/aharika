@@ -77,7 +77,7 @@ const styles = sortCx({
   },
 });
 
-const TABS: { id: NotificationCenterTab; label: string }[] = [
+const DEFAULT_TABS: { id: NotificationCenterTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "mentions", label: "Mentions" },
   { id: "system", label: "System" },

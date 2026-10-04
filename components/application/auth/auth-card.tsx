@@ -100,6 +100,11 @@ export interface AuthCardProps {
   onProvider?: (provider: SocialProvider) => void;
   /** Footer link target, e.g. to the opposite mode. */
   switchHref?: string;
+  /** Shown under the title when sign-in or sign-up fails. */
+  error?: string;
+  isSubmitting?: boolean;
+  /** Optional action below the mode switch link (e.g. continue as guest). */
+  extraAction?: ReactNode;
   /**
    * Heading level for the card title. Defaults to `1`, because on a real
    * sign-in screen the card *is* the page. Drop it to `2`+ wherever the card
@@ -153,6 +158,9 @@ export function AuthCard({
   onSubmit,
   onProvider,
   switchHref = "#",
+  error,
+  isSubmitting = false,
+  extraAction,
   headingLevel = 1,
   className,
 }: AuthCardProps) {
@@ -242,7 +250,10 @@ export function AuthCard({
           {title ?? copy.title}
         </TitleHeading>
         <p className="text-body-regular text-text-secondary">
-          {description ??
+          {error ? (
+            <span className="text-text-error-primary">{error}</span>
+          ) : (
+            description ??
             (verify && email ? (
               <>
                 Enter the code we sent to{" "}
@@ -251,7 +262,8 @@ export function AuthCard({
               </>
             ) : (
               copy.description
-            ))}
+            ))
+          )}
         </p>
       </div>
 
@@ -345,7 +357,7 @@ export function AuthCard({
           </div>
         )}
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {copy.cta}
         </Button>
 
@@ -383,6 +395,11 @@ export function AuthCard({
           {copy.switchLead} <LinkButton href={switchHref}>{copy.switchAction}</LinkButton>
         </p>
       )}
+      {extraAction ? (
+        <div className="mt-3 text-center text-body-regular text-text-secondary">
+          {extraAction}
+        </div>
+      ) : null}
     </>
   );
 

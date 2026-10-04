@@ -2,57 +2,64 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
-import { useRef, useState, type ComponentProps } from "react";
-import { CalendarDate } from "@internationalized/date";
-import { RiCalendarLine, RiExternalLinkLine, RiLogoutCircleLine, RiMailLine } from "@remixicon/react";
-import { Button } from "@/components/base/buttons/button";
-import { DatePicker } from "@/components/base/date-picker/date-picker";
+import { useEffect, useRef, useState, type ComponentProps, type Key } from "react";
+import { RiLogoutCircleLine, RiMailLine, RiUserLine } from "@remixicon/react";
+import { useSession } from "next-auth/react";
+import { useLogOutConfirm } from "@/components/application/auth/log-out-confirm-provider";
+import { Button, ButtonLink } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Switch } from "@/components/base/switch/switch";
+import { guestRegex, withBasePath } from "@/lib/constants";
 import { cx } from "@/utils/cx";
 import {
   SettingsCard,
   SettingsRow,
+  SettingsSectionLabel,
   SettingsValueField,
 } from "./settings-rows";
+import { SettingsDailyGoals } from "./settings-daily-goals";
 
-/**
- * Figma source: Board UI → "Settings/Profile" (node 4081:13943), the right
- * pane of the settings modal.
- *
- * Two cards, 24px apart:
- *   1. identity   Email / First name / Last name as editable design-system
- *                 Inputs (small, 202px — mail icon on Email), Date of birth
- *                 (white date-picker trigger, 202px)
- *   2. account    BoardUI account → "Manage", Public profile toggle (on),
- *                 Device ID (muted, truncated), Log out from all devices.
- */
+const SELECT_TRIGGER = "h-8 w-[202px] max-w-full gap-1 rounded-lg px-2 py-1.5";
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+const TIMEZONE_OPTIONS = [
+  { id: "Asia/Kolkata", label: "India (IST)" },
+  { id: "Asia/Dubai", label: "Gulf (GST)" },
+  { id: "Asia/Singapore", label: "Singapore" },
+  { id: "Europe/London", label: "United Kingdom" },
+  { id: "America/New_York", label: "US Eastern" },
+  { id: "America/Los_Angeles", label: "US Pacific" },
+  { id: "Australia/Sydney", label: "Australia (Sydney)" },
+] as const;
 
-function formatBirthDate(date: CalendarDate) {
-  return `${date.day} ${MONTHS[date.month - 1]} ${date.year}`;
-}
+const MEAL_NUDGES_KEY = "aharika-meal-nudges";
 
-/**
- * Design-system Input that commits on Enter / blur: Enter just blurs the
- * field, and blur fires `onSaved` only when the value actually changed since
- * the last commit — so clicking in and out without typing stays silent.
- */
 function SavableInput({
   initialValue,
   onSaved,
+  readOnly = false,
   ...inputProps
-}: { initialValue: string; onSaved?: () => void } & Omit<
-  ComponentProps<typeof Input>,
-  "value" | "onChange" | "defaultValue"
->) {
+}: {
+  initialValue: string;
+  onSaved?: () => void;
+  readOnly?: boolean;
+} & Omit<ComponentProps<typeof Input>, "value" | "onChange" | "defaultValue">) {
   const localize = useTemplateCopy();
   const [value, setValue] = useState(initialValue);
   const committed = useRef(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+    committed.current = initialValue;
+  }, [initialValue]);
+
+  if (readOnly) {
+    return localize((
+      <SettingsValueField icon={inputProps.leadingIcon} className="w-[202px]">
+        {initialValue || "—"}
+      </SettingsValueField>
+    ));
+  }
 
   return localize((
     <Input
@@ -76,82 +83,196 @@ function SavableInput({
 
 export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
   const localize = useTemplateCopy();
-  const [birthDate, setBirthDate] = useState<CalendarDate>(new CalendarDate(1997, 7, 28));
-  const [birthOpen, setBirthOpen] = useState(false);
-  const birthTriggerRef = useRef<HTMLButtonElement>(null);
-  const [publicProfile, setPublicProfile] = useState(true);
+  const { data: session } = useSession();
+  const { openLogOutConfirm } = useLogOutConfirm();
+
+  const isGuest =
+    session?.user?.type === "guest" ||
+    guestRegex.test(session?.user?.email ?? "");
+
+  const email = session?.user?.email ?? "";
+  const displayEmail = isGuest ? "Trial guest account" : email;
+  const displayName =
+    session?.user?.name?.trim() ||
+    (email && !isGuest && email.includes("@") ? email.split("@")[0] : "");
+
+  const [timezone, setTimezone] = useState("Asia/Kolkata");
+  const [mealNudges, setMealNudges] = useState(true);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(MEAL_NUDGES_KEY);
+      if (stored !== null) setMealNudges(stored === "true");
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(withBasePath("/api/nutrition/preferences"));
+        if (!response.ok) return;
+        const data = (await response.json()) as { timezone?: string };
+        if (!cancelled && data.timezone) {
+          setTimezone(data.timezone);
+        }
+      } finally {
+        if (!cancelled) setPrefsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveTimezone = async (key: Key | null) => {
+    if (key === null) return;
+    const next = String(key);
+    setTimezone(next);
+    try {
+      await fetch(withBasePath("/api/nutrition/preferences"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: next }),
+      });
+      onSaved?.();
+    } catch {
+      // keep UI value; toast not required
+    }
+  };
+
+  const onMealNudgesChange = (enabled: boolean) => {
+    setMealNudges(enabled);
+    try {
+      window.localStorage.setItem(MEAL_NUDGES_KEY, String(enabled));
+    } catch {
+      // ignore
+    }
+    onSaved?.();
+  };
+
+  const accountLabel = isGuest ? "Guest trial" : "Member";
 
   return localize((
     <div className="flex w-full flex-col gap-6">
-      <SettingsCard>
-        <SettingsRow label="Email">
-          <SavableInput
-            aria-label="Email"
-            type="email"
-            leadingIcon={RiMailLine}
-            initialValue="hi@mertcan.works"
-            onSaved={onSaved}
-          />
-        </SettingsRow>
-        <SettingsRow label="First name">
-          <SavableInput aria-label="First name" initialValue="Mertcan" onSaved={onSaved} />
-        </SettingsRow>
-        <SettingsRow label="Last name">
-          <SavableInput aria-label="Last name" initialValue="Esmergül" onSaved={onSaved} />
-        </SettingsRow>
-        <SettingsRow label="Date of birth">
-          <button
-            ref={birthTriggerRef}
-            type="button"
-            onClick={() => setBirthOpen((o) => !o)}
-            className={[
-              "flex h-8 w-[202px] shrink-0 cursor-pointer items-center gap-0.5 rounded-lg px-2",
-              "border border-border-button-default bg-background-primary-default shadow-xs",
-              "transition-colors duration-150 ease hover:bg-background-primary-hover",
-              "outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring",
-            ].join(" ")}
+      <div className="flex w-full flex-col gap-2">
+        <SettingsSectionLabel>About you</SettingsSectionLabel>
+        <SettingsCard>
+          <SettingsRow label="Email">
+            <SavableInput
+              aria-label="Email"
+              type="email"
+              leadingIcon={RiMailLine}
+              initialValue={displayEmail}
+              readOnly
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Name"
+            description={
+              isGuest
+                ? "Create an account to save a display name"
+                : "How Aharika greets you in chat"
+            }
           >
-            <RiCalendarLine className="size-[18px] shrink-0 text-foreground-icon-primary" aria-hidden />
-            <span className="px-0.5 text-body-regular whitespace-nowrap text-text-primary">
-              {formatBirthDate(birthDate)}
-            </span>
-          </button>
-          <DatePicker
-            aria-label="Date of birth"
-            triggerRef={birthTriggerRef}
-            isOpen={birthOpen}
-            onOpenChange={setBirthOpen}
-            value={birthDate}
-            onChange={(next) => next && setBirthDate(next)}
-          />
-        </SettingsRow>
-      </SettingsCard>
+            <SavableInput
+              aria-label="Name"
+              leadingIcon={RiUserLine}
+              initialValue={displayName}
+              readOnly={isGuest}
+              onSaved={onSaved}
+            />
+          </SettingsRow>
+          <SettingsRow label="Account">
+            <SettingsValueField className="w-[202px]">{accountLabel}</SettingsValueField>
+          </SettingsRow>
+        </SettingsCard>
+      </div>
 
-      <SettingsCard>
-        <SettingsRow label="BoardUI account">
-          <Button variant="secondary" size="small" leadingIcon={RiExternalLinkLine}>
-            Manage
-          </Button>
-        </SettingsRow>
-        <SettingsRow
-          label="Public profile"
-          description="When enabled your profile page will be visible to anyone"
-        >
-          <Switch
-            aria-label="Public profile"
-            isSelected={publicProfile}
-            onChange={setPublicProfile}
-          />
-        </SettingsRow>
-        <SettingsRow label="Device ID">
-          <SettingsValueField muted>593e2611-b9e3-44e2-1289-ab3f9d21</SettingsValueField>
-        </SettingsRow>
-        <SettingsRow label="Log out from all devices">
-          <Button variant="secondary" size="small" leadingIcon={RiLogoutCircleLine}>
-            Logout
-          </Button>
-        </SettingsRow>
-      </SettingsCard>
+      <div className="flex w-full flex-col gap-2">
+        <SettingsSectionLabel>Coaching & diary</SettingsSectionLabel>
+        <SettingsCard>
+          <SettingsRow
+            label="Timezone"
+            description="Meal days and gentle reminders use this clock"
+          >
+            <Select
+              aria-label="Timezone"
+              selectedKey={timezone}
+              onSelectionChange={saveTimezone}
+              isDisabled={!prefsLoaded}
+              className="w-[202px] shrink-0"
+              triggerClassName={SELECT_TRIGGER}
+            >
+              {TIMEZONE_OPTIONS.map((zone) => (
+                <SelectItem key={zone.id} id={zone.id} textValue={zone.label}>
+                  {zone.label}
+                </SelectItem>
+              ))}
+            </Select>
+          </SettingsRow>
+          <SettingsRow
+            label="Meal reminders"
+            description="In-chat nudges when you miss a usual breakfast, lunch, or dinner"
+          >
+            <Switch
+              aria-label="Meal reminders"
+              isSelected={mealNudges}
+              onChange={onMealNudgesChange}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Coach memory"
+            description="Recent meals and habits personalize your advice"
+          >
+            <SettingsValueField className="w-[202px]">
+              {isGuest ? "Trial only" : "On"}
+            </SettingsValueField>
+          </SettingsRow>
+        </SettingsCard>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <SettingsSectionLabel>Calorie & macro targets</SettingsSectionLabel>
+        {isGuest ? (
+          <SettingsCard>
+            <SettingsRow
+              label="Body-weight estimator"
+              description="Sign up to calculate and save daily calories and macros"
+            >
+              <ButtonLink
+                href={withBasePath("/signup")}
+                variant="secondary"
+                size="small"
+                className="shrink-0"
+              >
+                Create account
+              </ButtonLink>
+            </SettingsRow>
+          </SettingsCard>
+        ) : (
+          <SettingsDailyGoals variant="profile" onSaved={onSaved} />
+        )}
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <SettingsSectionLabel>Account actions</SettingsSectionLabel>
+        <SettingsCard>
+          <SettingsRow label="Sign out">
+            <Button
+              variant="secondary"
+              size="small"
+              leadingIcon={RiLogoutCircleLine}
+              onClick={openLogOutConfirm}
+            >
+              Sign out
+            </Button>
+          </SettingsRow>
+        </SettingsCard>
+      </div>
     </div>
   ));
 }

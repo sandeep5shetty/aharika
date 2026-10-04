@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="blob-playground-mascot" viewBox="165 118 555 478" role="img" aria-label="Aharika mascot">
+  <style>
+    .blob-playground-mascot {
+      --jelly-body-top: #c9f7e8;
+      --jelly-body-mid: #5ee0b0;
+      --jelly-body-deep: #00bc7d;
+      --jelly-body-rim: #9ef0c9;
+      --jelly-outline: #2f9e6b;
+      --jelly-outline-light: #4bc492;
+      --jelly-arm-light: #b8f5d9;
+      --jelly-arm-mid: #3dc992;
+      --jelly-arm-deep: #1fa872;
+      --jelly-cheek-light: #d4ffe8;
+      --jelly-cheek: #7ee8b8;
+      --jelly-cheek-deep: #5fd9b8;
+      --jelly-eye-light: #1a3d2e;
+      --jelly-eye: #0a1f16;
+      --jelly-eye-deep: #05100c;
+      --jelly-face-ink: #0a1f16;
+      --jelly-shadow: #2f9e6b;
+      --jelly-shadow-light: #4bc492;
+      --jelly-eye-sparkle: #7ccf00;
+    }
+  </style>
+  <defs>
+    <radialGradient id="aharika-bodyFill" cx="345" cy="192" r="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--jelly-body-top, #c9f7e8)"/>
+      <stop offset="0.32" stop-color="var(--jelly-body-mid, #5ee0b0)"/>
+      <stop offset="0.67" stop-color="var(--jelly-body-deep, #00bc7d)"/>
+      <stop offset="1" stop-color="var(--jelly-body-rim, #9ef0c9)"/>
+    </radialGradient>
+    <linearGradient id="aharika-bodyEdge" x1="215" y1="150" x2="735" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--jelly-outline-light, #4bc492)"/>
+      <stop offset="0.55" stop-color="var(--jelly-outline, #2f9e6b)"/>
+      <stop offset="1" stop-color="var(--jelly-outline-light, #4bc492)"/>
+    </linearGradient>
+    <radialGradient id="aharika-armFill" cx="0.45" cy="0.25" r="0.8">
+      <stop offset="0" stop-color="var(--jelly-arm-light, #b8f5d9)"/>
+      <stop offset="0.55" stop-color="var(--jelly-arm-mid, #3dc992)"/>
+      <stop offset="1" stop-color="var(--jelly-arm-deep, #1fa872)"/>
+    </radialGradient>
+    <radialGradient id="aharika-cheekFill" cx="0.34" cy="0.28" r="0.78">
+      <stop offset="0" stop-color="var(--jelly-cheek-light, #d4ffe8)"/>
+      <stop offset="0.6" stop-color="var(--jelly-cheek, #7ee8b8)"/>
+      <stop offset="1" stop-color="var(--jelly-cheek-deep, #5fd9b8)"/>
+    </radialGradient>
+    <radialGradient id="aharika-eyeFill" cx="0.34" cy="0.24" r="0.8">
+      <stop offset="0" stop-color="var(--jelly-eye-light, #1a3d2e)"/>
+      <stop offset="0.55" stop-color="var(--jelly-eye, #0a1f16)"/>
+      <stop offset="1" stop-color="var(--jelly-eye-deep, #05100c)"/>
+    </radialGradient>
+    <radialGradient id="aharika-shadowFill" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="var(--jelly-shadow, #2f9e6b)" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="var(--jelly-shadow-light, #4bc492)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="aharika-shadowBlur" x="-40%" y="-80%" width="180%" height="260%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="aharika-softBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+  <ellipse cx="450" cy="600" rx="212" ry="31" opacity="0.46" fill="url(#aharika-shadowFill)" filter="url(#aharika-shadowBlur)"/>
+  <g transform="translate(-3 4) rotate(-4 229 407)">
+    <path d="M216 380 C195 380 180 396 180 416 C180 438 195 452 216 452 C237 452 250 438 250 416 C250 396 237 380 216 380 Z" fill="url(#aharika-armFill)" stroke="var(--jelly-arm-deep, #1fa872)" stroke-width="5.5" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(1 1) rotate(6 671 407)">
+    <path d="M684 380 C705 380 720 396 720 416 C720 438 705 452 684 452 C663 452 650 438 650 416 C650 396 663 380 684 380 Z" fill="url(#aharika-armFill)" stroke="var(--jelly-arm-deep, #1fa872)" stroke-width="5.5" stroke-linejoin="round"/>
+  </g>
+  <path fill="url(#aharika-bodyFill)" stroke="url(#aharika-bodyEdge)" stroke-width="5.8" stroke-linejoin="round" d="M450 135 C520 137 580 158 618 200 C652 240 672 290 680 345 C686 390 688 425 686 462 C681.8 507.8 673.0 534.5 654.7 558.8 C637.7 577.7 623.9 589.7 599.7 592.0 C576.5 591.3 560.0 581.7 535.3 577.7 C509.4 574.3 481.3 581.9 449.2 582.1 C416.3 580.6 387.5 571.7 360.6 573.9 C334.8 577.3 318.2 586.5 293.0 588.3 C268.7 587.9 255.4 577.3 239.3 559.7 C222.2 536.1 214.8 509.3 213.6 463.4 C212.0 425.0 214.0 390.0 220.0 345.0 C228.0 290.0 248.0 240.0 282.0 200.0 C320.0 158.0 380.0 137.0 450.0 135.0 Z"/>
+  <ellipse cx="309" cy="430" rx="35" ry="23" fill="url(#aharika-cheekFill)" opacity="0.45" filter="url(#aharika-softBlur)"/>
+  <ellipse cx="617" cy="430" rx="35" ry="23" fill="url(#aharika-cheekFill)" opacity="0.45" filter="url(#aharika-softBlur)"/>
+  <ellipse cx="353" cy="371" rx="32" ry="39" fill="url(#aharika-eyeFill)"/>
+  <ellipse cx="551" cy="371" rx="32" ry="39" fill="url(#aharika-eyeFill)"/>
+  <circle cx="364" cy="353" r="10.5" fill="#ffffff" opacity="0.96"/>
+  <circle cx="540" cy="353" r="10.5" fill="#ffffff" opacity="0.96"/>
+  <circle cx="339" cy="391" r="5.8" fill="var(--jelly-eye-sparkle, #7ccf00)" opacity="0.62"/>
+  <circle cx="565" cy="391" r="5.8" fill="var(--jelly-eye-sparkle, #7ccf00)" opacity="0.62"/>
+  <path d="M431 409 C437 429 466 429 473 409" fill="none" stroke="var(--jelly-face-ink, #0a1f16)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -4,9 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx lib/db/migrate.ts && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx lib/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:push": "drizzle-kit push",
+    "db:seed-foods": "tsx scripts/import-foods.ts",
+    "db:seed-sandy-meals": "tsx scripts/seed-sandy-meals.ts",
+    "db:setup": "npm run db:migrate && npm run db:seed-foods"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.47",
@@ -17,13 +24,25 @@
     "@remixicon/react": "^4.9.0",
     "@tanstack/react-table": "^8.21.3",
     "ai": "^7.0.87",
+    "bcrypt-ts": "^8.0.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "feral-blob": "^0.2.0",
     "motion": "^12.42.2",
     "next": "16.3.8",
+    "next-auth": "5.0.0-beta.25",
+    "papaparse": "^5.5.4",
+    "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-aria-components": "^1.21.1",
     "react-dom": "19.2.8",
     "recharts": "^3.9.2",
+    "redis": "^6.1.0",
+    "sarvamai": "^1.1.10",
+    "server-only": "^0.0.1",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.5.4"
   },
@@ -32,9 +51,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.0",
+    "typescript": "^5",
+    "xlsx": "^0.18.5"
   }
 }

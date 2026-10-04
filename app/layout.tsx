@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 import { BoardUIThemeScript } from "@/components/foundations/theme/boardui-theme-script";
 import { DirectionProvider } from "@/components/foundations/direction/direction";
+import { GuestUpgradeProvider } from "@/components/application/auth/guest-upgrade-provider";
+import { LogOutConfirmProvider } from "@/components/application/auth/log-out-confirm-provider";
+import { AuthSessionProvider } from "@/components/application/auth/session-provider";
+import { NotificationToastProvider } from "@/components/application/notification-toast";
 
 import "feral-blob/blob.css";
 import "@/styles/feral-jelly-theme.css";
@@ -18,9 +22,22 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif-source",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
-  title: "Chat",
-  description: "A streaming AI chat on your own model key, built with BoardUI.",
+  title: "Aharika",
+  description: "Your AI nutrition coach — log meals, track progress, and get personalized guidance.",
+  icons: {
+    icon: [
+      { url: "/brand/aharika-favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/aharika-favicon.svg", sizes: "32x32", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/brand/aharika-favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({
@@ -30,14 +47,22 @@ export default function RootLayout({
     <html
       lang="en-US"
       dir="ltr"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <BoardUIThemeScript />
       </head>
       <body className="flex min-h-full flex-col font-sans">
-        <DirectionProvider locale="en-US">{children}</DirectionProvider>
+        <DirectionProvider locale="en-US">
+          <AuthSessionProvider>
+            <GuestUpgradeProvider>
+              <LogOutConfirmProvider>
+                <NotificationToastProvider>{children}</NotificationToastProvider>
+              </LogOutConfirmProvider>
+            </GuestUpgradeProvider>
+          </AuthSessionProvider>
+        </DirectionProvider>
       </body>
     </html>
   );

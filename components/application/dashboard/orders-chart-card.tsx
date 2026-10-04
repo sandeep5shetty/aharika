@@ -58,6 +58,23 @@ export const ORDERS_DATA: OrdersPoint[] = [
 
 const formatK = (value: number) => (value >= 1000 ? `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k` : `${value}`);
 
+export type BarChartFormat = {
+  formatHeadline: (value: number) => string;
+  formatComparison: (value: number, hovering: boolean) => string;
+  formatAxis: (value: number) => string;
+  legendCurrent: string;
+  legendPrevious: string;
+};
+
+const DEFAULT_BAR_FORMAT: BarChartFormat = {
+  formatHeadline: (value) => value.toLocaleString("en-US"),
+  formatComparison: (value, hovering) =>
+    `${value.toLocaleString("en-US")} ${hovering ? "a year earlier" : "last year"}`,
+  formatAxis: formatK,
+  legendCurrent: "This year",
+  legendPrevious: "Last year",
+};
+
 function describeDelta(current: number, previous: number) {
   if (previous === 0) return { label: "New", color: "neutral" as const };
   const change = ((current - previous) / previous) * 100;
@@ -72,12 +89,14 @@ function describeDelta(current: number, previous: number) {
 export function OrdersChartCard({
   data = ORDERS_DATA,
   title = "Orders",
+  valueFormat = DEFAULT_BAR_FORMAT,
   className,
 }: {
   /** Twelve points, one per month; defaults to the demo year. */
   data?: OrdersPoint[];
   /** Headline label when no month is hovered. */
   title?: string;
+  valueFormat?: BarChartFormat;
   className?: string;
 } = {}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -112,24 +131,24 @@ export function OrdersChartCard({
               key={activeIndex ?? "total"}
               className="animate-number-fade text-title-1-medium whitespace-nowrap text-text-primary tabular-nums"
             >
-              {display.toLocaleString("en-US")}
+              {valueFormat.formatHeadline(display)}
             </p>
             <Chip variant="bold" color={delta.color}>
               {delta.label}
             </Chip>
           </div>
           <p className="text-body-2-medium text-text-tertiary tabular-nums">
-            {comparison.toLocaleString("en-US")} {point ? "a year earlier" : "last year"}
+            {valueFormat.formatComparison(comparison, Boolean(point))}
           </p>
         </div>
         <dl className="flex shrink-0 items-center gap-4 text-body-2-medium text-text-secondary">
           <div className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-chart-9-active" aria-hidden />
-            <dt>This year</dt>
+            <dt>{valueFormat.legendCurrent}</dt>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-chart-neutral" aria-hidden />
-            <dt>Last year</dt>
+            <dt>{valueFormat.legendPrevious}</dt>
           </div>
         </dl>
       </div>
@@ -152,9 +171,7 @@ export function OrdersChartCard({
               width={40}
               domain={[0, yMax * 1.1]}
               tickCount={4}
-              tickFormatter={formatK}
-              tickLine={false}
-              axisLine={false}
+              tickFormatter={valueFormat.formatAxis}
               tick={{ fontSize: 12, fill: "var(--color-text-tertiary)" }}
             />
             <XAxis

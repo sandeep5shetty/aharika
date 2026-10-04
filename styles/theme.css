@@ -54,6 +54,10 @@
   --font-mono: var(--font-mono-source), ui-monospace, "SFMono-Regular", Menlo,
                Consolas, "Liberation Mono", monospace;
 
+  /* Landing hero display — Instrument Serif via next/font in app/layout.tsx */
+  --font-instrument-serif: var(--font-instrument-serif-source), ui-serif, Georgia,
+                           "Times New Roman", serif;
+
   /* ----- Radii ---------------------------------------------------------------
    * Extra step between lg (8) and xl (12). Used by medium-size buttons.
    * Figma name: radius/2lg.

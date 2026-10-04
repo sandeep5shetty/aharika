@@ -2,7 +2,7 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 import { Button } from "@/components/base/buttons/button";
 import { cx } from "@/utils/cx";

@@ -10,10 +10,11 @@ import {
   RiFilter3Fill,
   RiLayoutGridLine,
   RiLoginBoxLine,
+  RiPieChart2Line,
   RiMenuLine,
   RiUserAddLine,
 } from "@remixicon/react";
-import type { ComponentType } from "react";
+import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
@@ -22,11 +23,11 @@ import {
   type DashboardNavItem,
 } from "@/components/application/dashboard/dashboard-sidebar";
 import { NotificationBell } from "@/components/application/app-shell/notification-bell";
+import { NutritionNotificationsProvider } from "@/components/application/app-shell/nutrition-notifications-provider";
 import { ProOfferCard } from "@/components/application/app-shell/pro-offer-card";
-import { Avatar } from "@/components/base/avatar/avatar";
-import { Breadcrumb, BreadcrumbItem } from "@/components/base/breadcrumb/breadcrumb";
 import { Button } from "@/components/base/buttons/button";
 import { IconButton } from "@/components/base/buttons/icon-button";
+import { CHAT_PATH } from "@/lib/constants";
 import { cx } from "@/utils/cx";
 
 /**
@@ -58,15 +59,37 @@ export function useStarterBase(): string {
   return pathname.match(/^((?:\/[a-z]{2}(?:-[a-zA-Z]{2})?)?\/templates\/chat-starter)(?:\/|$)/)?.[1] ?? "";
 }
 
-export function starterNav(base: string): DashboardNavItem[] {
-  return [
-    { key: "chat", label: "Chat", icon: RiChatAiLine, href: base || "/" },
+export function starterNav(base: string, signedInRegular = false): DashboardNavItem[] {
+  const items: DashboardNavItem[] = [
+    { key: "chat", label: "Chat", icon: RiChatAiLine, href: `${base}${CHAT_PATH}` },
     { key: "dashboard", label: "Dashboard", icon: RiDashboardLine, href: `${base}/dashboard` },
     { key: "components", label: "Components and Blocks", icon: RiLayoutGridLine, href: `${base}/components` },
-    // Auth screens, as examples: full-page, so nothing is selected while on them.
-    { key: "login", label: "Sign in", icon: RiLoginBoxLine, href: `${base}/login` },
-    { key: "signup", label: "Sign up", icon: RiUserAddLine, href: `${base}/signup` },
   ];
+
+  if (signedInRegular) {
+    items.push({
+      key: "daily-goals",
+      label: "Daily targets",
+      icon: RiPieChart2Line,
+      action: "daily-goals",
+    });
+  }
+
+  if (!signedInRegular) {
+    items.push(
+      { key: "login", label: "Sign in", icon: RiLoginBoxLine, href: `${base}/login` },
+      { key: "signup", label: "Sign up", icon: RiUserAddLine, href: `${base}/signup` },
+    );
+  }
+
+  return items;
+}
+
+export function useStarterNav(): DashboardNavItem[] {
+  const base = useStarterBase();
+  const { data: session } = useSession();
+  const signedInRegular = session?.user?.type === "regular";
+  return starterNav(base, signedInRegular);
 }
 
 /** The nav key of the page at the current URL. */
@@ -76,32 +99,28 @@ export function useStarterSelected(): string {
   const rest = pathname.slice(base.length);
   if (rest.startsWith("/dashboard")) return "dashboard";
   if (rest.startsWith("/components")) return "components";
-  return "chat";
+  if (rest.startsWith(CHAT_PATH)) return "chat";
+  return "";
 }
-
-type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
 
 /**
  * The page standard every BoardUI template follows, free or Pro: content sits
  * directly on the page background inside a 1300px column, so cards and tables
- * carry their own surfaces; above it a breadcrumb trail (team, member, page)
- * and the page heading. Pages pass what differs and get the rest.
+ * carry their own surfaces; above it the page heading.
+ * Pages pass what differs and get the rest.
  */
 export function AppShell({
   title,
   heading = title,
-  icon: Icon = RiDashboardLine,
   actions,
   children,
   className,
   columnClassName,
 }: {
-  /** The page's name, shown as the current breadcrumb item. */
+  /** Page name; used as the default heading and for accessibility. */
   title: string;
   /** The heading over the content. Defaults to the title. */
   heading?: string;
-  /** Icon on the current breadcrumb item. */
-  icon?: IconComponent;
   /** Header actions on the right; the Pro dashboard's set by default, `null` for none. */
   actions?: ReactNode;
   children: ReactNode;
@@ -111,10 +130,11 @@ export function AppShell({
 }) {
   const localize = useTemplateCopy();
   const [navOpen, setNavOpen] = useState(false);
-  const items = starterNav(useStarterBase());
+  const items = useStarterNav();
   const selected = useStarterSelected();
 
   return localize((
+    <NutritionNotificationsProvider>
     <div
       className={cx(
         "relative flex h-dvh w-full gap-4 overflow-hidden bg-background-full p-3",
@@ -147,19 +167,6 @@ export function AppShell({
       <main className="relative flex min-h-0 min-w-0 flex-1 justify-center overflow-x-hidden overflow-y-auto bg-background-full sm:pt-3">
         <div className={cx("flex w-full max-w-[1300px] flex-col gap-2.5", columnClassName)}>
           <header className="flex w-full flex-col gap-2">
-            <Breadcrumb>
-              <BreadcrumbItem href="#">
-                <Avatar size="xs" color="blue" initials="B" />
-                Board team
-              </BreadcrumbItem>
-              <BreadcrumbItem href="#">
-                <Avatar size="xs" color="neutral" initials="M" />
-                Mertcan
-              </BreadcrumbItem>
-              <BreadcrumbItem current icon={Icon}>
-                {title}
-              </BreadcrumbItem>
-            </Breadcrumb>
             <div className="flex w-full flex-wrap items-end justify-between gap-2">
               <div className="flex min-w-0 items-center gap-1.5">
                 <IconButton
@@ -193,5 +200,6 @@ export function AppShell({
       </main>
       <ProOfferCard />
     </div>
+    </NutritionNotificationsProvider>
   ));
 }

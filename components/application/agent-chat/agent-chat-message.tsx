@@ -2,11 +2,40 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
+import type { UseChatHelpers } from "@ai-sdk/react";
 import { RiCheckLine, RiFileCopyLine, RiVolumeMuteLine, RiVolumeUpLine } from "@remixicon/react";
 import { motion, useReducedMotion } from "motion/react";
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import {
+  MealLogCard,
+  ProgressCard,
+} from "@/components/application/nutrition/meal-log-card";
+import { MealLogConfirmation } from "@/components/application/nutrition/meal-log-confirmation";
+import { withBasePath } from "@/lib/constants";
+import type { ChatMessage } from "@/lib/types";
 import { cx } from "@/utils/cx";
+import Image from "next/image";
+
+const AHARIKA_LOGO_SRC = "/brand/aharika-logo.svg";
+
+function AgentBlobAvatar() {
+  return (
+    <span
+      className="feral-jelly-mint mt-0.5 inline-flex size-10 shrink-0 items-center justify-center"
+      aria-hidden
+    >
+      <Image
+        src={withBasePath(AHARIKA_LOGO_SRC)}
+        alt=""
+        width={40}
+        height={40}
+        className="h-full w-full object-contain"
+        unoptimized
+      />
+    </span>
+  );
+}
 
 /**
  * One turn in the transcript.
@@ -220,3 +249,136 @@ function formatAgo(at: number) {
   const days = Math.round(hours / 24);
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
+
+function isMealLogToolType(type: string) {
+  return type === "tool-logMeal" || type === "tool-updateMeal";
+}
+
+function isMealApprovalUiState(state: string) {
+  return (
+    state === "approval-requested" ||
+    state === "approval-responded" ||
+    state === "input-available" ||
+    state === "output-denied"
+  );
+}
+
+export interface AgentChatTurnProps {
+  message: ChatMessage;
+  streaming?: boolean;
+  at?: number;
+  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  guestMode?: boolean;
+  onGuestMealBlocked?: () => void;
+}
+
+/** Renders one chat turn including nutrition tool cards. */
+export function AgentChatTurn({
+  message,
+  streaming = false,
+  at,
+  addToolApprovalResponse,
+  guestMode,
+  onGuestMealBlocked,
+}: AgentChatTurnProps) {
+  const localize = useTemplateCopy();
+  const text = message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+
+  if (message.role === "user") {
+    return localize(<AgentMessage role="user" text={text} at={at} />);
+  }
+
+  const toolParts = message.parts.filter((part) => part.type.startsWith("tool-"));
+
+  const hasVisibleContent =
+    Boolean(text) ||
+    toolParts.some((part) => {
+      const toolPart = part as { type: string; state: string };
+      if (isMealLogToolType(toolPart.type) && toolPart.state === "output-available") {
+        return true;
+      }
+      if (isMealLogToolType(toolPart.type) && isMealApprovalUiState(toolPart.state)) {
+        return true;
+      }
+      if (toolPart.type === "tool-getProgress" && toolPart.state === "output-available") {
+        return true;
+      }
+      return false;
+    });
+
+  if (!hasVisibleContent) {
+    return null;
+  }
+
+  return localize((
+    <div className="flex items-start gap-3 px-1">
+      <AgentBlobAvatar />
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+      {toolParts.map((part) => {
+        const toolPart = part as {
+          type: string;
+          toolCallId: string;
+          state: string;
+          input?: unknown;
+          output?: unknown;
+        };
+
+        if (
+          isMealLogToolType(toolPart.type) &&
+          toolPart.state === "output-available"
+        ) {
+          return (
+            <MealLogCard
+              key={toolPart.toolCallId}
+              output={
+                toolPart.output as Parameters<typeof MealLogCard>[0]["output"]
+              }
+            />
+          );
+        }
+
+        if (
+          isMealLogToolType(toolPart.type) &&
+          isMealApprovalUiState(toolPart.state)
+        ) {
+          return (
+            <MealLogConfirmation
+              key={toolPart.toolCallId}
+              addToolApprovalResponse={addToolApprovalResponse}
+              guestMode={guestMode}
+              onGuestMealBlocked={onGuestMealBlocked}
+              toolPart={
+                toolPart as Parameters<typeof MealLogConfirmation>[0]["toolPart"]
+              }
+            />
+          );
+        }
+
+        if (
+          toolPart.type === "tool-getProgress" &&
+          toolPart.state === "output-available"
+        ) {
+          return (
+            <ProgressCard
+              key={toolPart.toolCallId}
+              output={
+                toolPart.output as Parameters<typeof ProgressCard>[0]["output"]
+              }
+            />
+          );
+        }
+
+        return null;
+      })}
+      {text ? (
+        <AgentMessage role="assistant" text={text} streaming={streaming} at={at} />
+      ) : null}
+      </div>
+    </div>
+  ));
+}
+
+export { AgentBlobAvatar };

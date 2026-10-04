@@ -20,3 +20,113 @@
   --jelly-belly-glow: #d4ffd9;
   --jelly-eye-sparkle: #7ccf00;
 }
+
+.feral-jelly-sky {
+  --jelly-body-top: #dbeafe;
+  --jelly-body-mid: #60a5fa;
+  --jelly-body-deep: #2563eb;
+  --jelly-body-rim: #bfdbfe;
+  --jelly-outline: #1d4ed8;
+  --jelly-outline-light: #3b82f6;
+  --jelly-arm-light: #dbeafe;
+  --jelly-arm-mid: #3b82f6;
+  --jelly-arm-deep: #1e40af;
+  --jelly-cheek-light: #fce7f3;
+  --jelly-cheek: #f9a8d4;
+  --jelly-cheek-deep: #ec4899;
+  --jelly-eye-light: #1e3a5f;
+  --jelly-eye: #0f172a;
+  --jelly-eye-deep: #020617;
+  --jelly-face-ink: #0f172a;
+  --jelly-face-soft: #1e3a5f;
+  --jelly-belly-glow: #e0f2fe;
+  --jelly-eye-sparkle: #38bdf8;
+}
+
+.feral-jelly-violet {
+  --jelly-body-top: #ede9fe;
+  --jelly-body-mid: #a78bfa;
+  --jelly-body-deep: #7c3aed;
+  --jelly-body-rim: #ddd6fe;
+  --jelly-outline: #5b21b6;
+  --jelly-outline-light: #8b5cf6;
+  --jelly-arm-light: #ede9fe;
+  --jelly-arm-mid: #8b5cf6;
+  --jelly-arm-deep: #6d28d9;
+  --jelly-cheek-light: #fce7f3;
+  --jelly-cheek: #f0abfc;
+  --jelly-cheek-deep: #d946ef;
+  --jelly-eye-light: #3b0764;
+  --jelly-eye: #1e1b4b;
+  --jelly-eye-deep: #0f0a1a;
+  --jelly-face-ink: #1e1b4b;
+  --jelly-face-soft: #3b0764;
+  --jelly-belly-glow: #f5f3ff;
+  --jelly-eye-sparkle: #c084fc;
+}
+
+.feral-jelly-coral {
+  --jelly-body-top: #ffe4e6;
+  --jelly-body-mid: #fb7185;
+  --jelly-body-deep: #e11d48;
+  --jelly-body-rim: #fecdd3;
+  --jelly-outline: #be123c;
+  --jelly-outline-light: #f43f5e;
+  --jelly-arm-light: #ffe4e6;
+  --jelly-arm-mid: #f43f5e;
+  --jelly-arm-deep: #be123c;
+  --jelly-cheek-light: #ffedd5;
+  --jelly-cheek: #fdba74;
+  --jelly-cheek-deep: #f97316;
+  --jelly-eye-light: #4c0519;
+  --jelly-eye: #1c1917;
+  --jelly-eye-deep: #0c0a09;
+  --jelly-face-ink: #1c1917;
+  --jelly-face-soft: #4c0519;
+  --jelly-belly-glow: #fff1f2;
+  --jelly-eye-sparkle: #fb923c;
+}
+
+.feral-jelly-amber {
+  --jelly-body-top: #fef3c7;
+  --jelly-body-mid: #fbbf24;
+  --jelly-body-deep: #d97706;
+  --jelly-body-rim: #fde68a;
+  --jelly-outline: #b45309;
+  --jelly-outline-light: #f59e0b;
+  --jelly-arm-light: #fef3c7;
+  --jelly-arm-mid: #f59e0b;
+  --jelly-arm-deep: #b45309;
+  --jelly-cheek-light: #fecdd3;
+  --jelly-cheek: #fb7185;
+  --jelly-cheek-deep: #f43f5e;
+  --jelly-eye-light: #451a03;
+  --jelly-eye: #1c1917;
+  --jelly-eye-deep: #0c0a09;
+  --jelly-face-ink: #1c1917;
+  --jelly-face-soft: #451a03;
+  --jelly-belly-glow: #fffbeb;
+  --jelly-eye-sparkle: #facc15;
+}
+
+.feral-jelly-teal {
+  --jelly-body-top: #ccfbf1;
+  --jelly-body-mid: #2dd4bf;
+  --jelly-body-deep: #0d9488;
+  --jelly-body-rim: #99f6e4;
+  --jelly-outline: #0f766e;
+  --jelly-outline-light: #14b8a6;
+  --jelly-arm-light: #ccfbf1;
+  --jelly-arm-mid: #14b8a6;
+  --jelly-arm-deep: #0f766e;
+  --jelly-cheek-light: #d1fae5;
+  --jelly-cheek: #6ee7b7;
+  --jelly-cheek-deep: #10b981;
+  --jelly-eye-light: #134e4a;
+  --jelly-eye: #042f2e;
+  --jelly-eye-deep: #022c22;
+  --jelly-face-ink: #042f2e;
+  --jelly-face-soft: #134e4a;
+  --jelly-belly-glow: #ecfdf5;
+  --jelly-eye-sparkle: #34d399;
+}

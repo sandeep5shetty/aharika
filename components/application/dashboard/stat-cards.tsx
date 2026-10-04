@@ -250,7 +250,7 @@ export function StatCards({
   /** Columns at the widest breakpoint - 2 keeps the grid two-up for
    *  narrower hosts (docs previews, split layouts), 1 pins a single
    *  column at every width. */
-  columns?: 1 | 2 | 4;
+  columns?: 1 | 2 | 3 | 4;
   className?: string;
 } = {}) {
   const localize = useTemplateCopy();
