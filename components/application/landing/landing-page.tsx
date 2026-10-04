@@ -1,6 +1,5 @@
 "use client";
 
-import { LandingCta } from "@/components/application/landing/landing-cta";
 import { LandingFeatures } from "@/components/application/landing/landing-features";
 import { LandingFooter } from "@/components/application/landing/landing-footer";
 import { LandingHero } from "@/components/application/landing/landing-hero";
