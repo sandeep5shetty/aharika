@@ -57,6 +57,7 @@ export interface NotificationCenterProps
   onAction?: (notificationId: string, actionId: string) => void;
   title?: string;
   emptyMessage?: string;
+  tabLabels?: Partial<Record<NotificationCenterTab, string>>;
   ref?: Ref<HTMLDivElement>;
 }
 
@@ -130,6 +131,7 @@ export function NotificationCenter({
   onAction,
   title = "Notifications",
   emptyMessage = "You’re all caught up.",
+  tabLabels,
   className,
   ref,
   ...props
@@ -146,6 +148,15 @@ export function NotificationCenter({
 
   const isUnread = (item: NotificationCenterItem) => item.unread === true && !readIds.has(item.id);
   const unreadCount = notifications.filter(isUnread).length;
+
+  const tabs = useMemo(
+    () =>
+      DEFAULT_TABS.map((entry) => ({
+        ...entry,
+        label: tabLabels?.[entry.id] ?? entry.label,
+      })),
+    [tabLabels],
+  );
 
   const tabCounts = useMemo(
     () => ({
@@ -205,7 +216,7 @@ export function NotificationCenter({
           }}
           className="flex w-full"
         >
-          {TABS.map(({ id, label }) => (
+          {tabs.map(({ id, label }) => (
             <SegmentedControlItem
               key={id}
               id={id}
