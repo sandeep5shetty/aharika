@@ -175,6 +175,8 @@
 
   /* Text */
   --color-text-primary: var(--color-neutral-950);
+  /* Brand wordmark. #056051 on white is about 7.5:1. */
+  --color-text-wordmark: #056051;
   --color-text-secondary: var(--color-neutral-500);
   --color-text-tertiary: var(--color-neutral-400);
   --color-text-disabled: var(--color-neutral-300);
@@ -437,6 +439,8 @@
 
   /* Text */
   --color-text-primary: var(--color-neutral-50);
+  /* Same teal as the light wordmark, lifted for #121212 (about 7.3:1). */
+  --color-text-wordmark: #d8fff8;
   --color-text-tertiary: var(--color-neutral-600);
   --color-text-disabled: var(--color-neutral-800);
   --color-text-error-primary: var(--color-red-400);
@@ -653,6 +657,7 @@
   --color-button-primary-disabled-foreground: var(--color-button-primary-disabled-foreground);
 
   --color-text-primary: var(--color-text-primary);
+  --color-text-wordmark: var(--color-text-wordmark);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-tertiary: var(--color-text-tertiary);
   --color-text-disabled: var(--color-text-disabled);

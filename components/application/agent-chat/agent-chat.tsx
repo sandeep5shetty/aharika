@@ -29,7 +29,6 @@ import { AgentThinking } from "@/components/application/agent-thinking/agent-thi
 import { useStarterBase, useStarterNav } from "@/components/application/app-shell/app-shell";
 import { NotificationBell } from "@/components/application/app-shell/notification-bell";
 import { NutritionNotificationsProvider } from "@/components/application/app-shell/nutrition-notifications-provider";
-import { ProOfferCard } from "@/components/application/app-shell/pro-offer-card";
 import { FeedbackModal } from "@/components/application/feedback/feedback-modal";
 import { DashboardSidebar } from "@/components/application/dashboard/dashboard-sidebar";
 import {
@@ -733,8 +732,7 @@ export function AgentChat({
                     <AgentComposer
                       value={input}
                       onValueChange={setInput}
-                      onSubmit={() => submit(input)}
-                      onVoiceTranscript={submit}
+                      onSubmit={(text) => submit(text ?? input)}
                       onStop={stop}
                       busy={busy}
                       chatStatus={status}
@@ -764,15 +762,11 @@ export function AgentChat({
             />
         )}
       </div>
-      {/* Fixed to the viewport, so not inside the docs preview frame. */}
-      {!contained && !isGuest && <ProOfferCard />}
-
       <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         defaultPage={settingsPage}
-        planArtSrc="/templates/settings-plan-art.png"
       />
       {!isGuest && (
         <DailyGoalsModal isOpen={dailyGoalsOpen} onClose={() => setDailyGoalsOpen(false)} />

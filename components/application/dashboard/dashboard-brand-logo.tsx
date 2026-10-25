@@ -85,7 +85,7 @@ export function DashboardBrandLogo({
         />
       </span>
       <Collapsible collapsed={collapsed}>
-        <span className="font-moonet-wordmark whitespace-nowrap text-text-primary">
+        <span className="font-moonet-wordmark whitespace-nowrap text-text-wordmark">
           AHARIKA
         </span>
       </Collapsible>

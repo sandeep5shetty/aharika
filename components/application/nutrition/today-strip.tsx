@@ -39,6 +39,7 @@ export function TodayStrip({
       totals={summary.totals}
       goals={summary.goals}
       variant="compact"
+      collapsible
       onEditTargets={onEditTargets}
     />
   );

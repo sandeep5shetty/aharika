@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   RiDeleteBin6Line,
+  RiEditLine,
   RiMore2Fill,
   RiRestaurantLine,
   RiSearchLine,
@@ -111,7 +112,15 @@ function RowActionButton({
   );
 }
 
-function RowMoreMenu({ name, onDelete }: { name: string; onDelete?: () => void }) {
+function RowMoreMenu({
+  name,
+  onDelete,
+  onEdit,
+}: {
+  name: string;
+  onDelete?: () => void;
+  onEdit?: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Dropdown isOpen={isOpen} onOpenChange={setIsOpen}>
@@ -135,6 +144,16 @@ function RowMoreMenu({ name, onDelete }: { name: string; onDelete?: () => void }
           <DropdownItem
             onSelect={() => {
               setIsOpen(false);
+              onEdit?.();
+            }}
+            className="px-2 py-1.5"
+          >
+            <RiEditLine className="size-[18px] shrink-0 text-foreground-icon-secondary" aria-hidden />
+            <span className="truncate text-body-medium whitespace-nowrap text-text-primary">Edit entry</span>
+          </DropdownItem>
+          <DropdownItem
+            onSelect={() => {
+              setIsOpen(false);
               onDelete?.();
             }}
             className="px-2 py-1.5"
@@ -153,9 +172,11 @@ const PER_PAGE = 8;
 export function NutritionMealsTable({
   rows,
   onDelete,
+  onEdit,
 }: {
   rows: NutritionMealRow[];
   onDelete?: (id: string) => void;
+  onEdit?: (meal: NutritionMealRow) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PER_PAGE });
@@ -243,6 +264,11 @@ export function NutritionMealsTable({
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2.5">
             <RowActionButton
+              icon={RiEditLine}
+              label="Edit meal"
+              onPress={() => onEdit?.(row.original)}
+            />
+            <RowActionButton
               icon={RiDeleteBin6Line}
               label="Delete meal"
               onPress={() => onDelete?.(row.original.id)}
@@ -250,12 +276,13 @@ export function NutritionMealsTable({
             <RowMoreMenu
               name={row.original.description}
               onDelete={() => onDelete?.(row.original.id)}
+              onEdit={() => onEdit?.(row.original)}
             />
           </div>
         ),
       },
     ],
-    [onDelete],
+    [onDelete, onEdit],
   );
 
   const table = useReactTable({

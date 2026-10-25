@@ -102,7 +102,7 @@ export function NotificationsProvider({
         placement="bottom end"
         offset={8}
         isNonModal
-        className="z-50 w-[440px] max-w-[calc(100vw-24px)] outline-none"
+        className="z-50 w-[min(440px,calc(100vw-16px))] outline-none"
       >
         <Dialog aria-label="Notifications" className="outline-none">
           <NotificationCenter
@@ -173,7 +173,7 @@ export function NotificationBell() {
         placement="bottom end"
         offset={8}
         isNonModal
-        className="z-50 w-[440px] max-w-[calc(100vw-24px)] outline-none"
+        className="z-50 w-[min(440px,calc(100vw-16px))] outline-none"
       >
         <Dialog aria-label="Notifications" className="outline-none">
           <NotificationCenter notifications={notifications} />

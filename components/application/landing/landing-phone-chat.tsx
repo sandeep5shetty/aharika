@@ -55,7 +55,7 @@ function ChatBubble({
           "rounded-2xl px-3 py-2 text-body-regular break-words",
           isCurrentUser
             ? "rounded-br-md bg-background-primary-default text-text-primary shadow-sm"
-            : "rounded-bl-md bg-accent-100 text-text-primary",
+            : "rounded-bl-md bg-accent-100 text-text-primary dark:bg-accent-900 dark:text-text-primary",
         )}
       >
         {message.message}

@@ -70,7 +70,7 @@ export function DailyGoalsModal({ isOpen, onClose }: DailyGoalsModalProps) {
   if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
-    <div dir={direction} className="fixed inset-0 z-100 flex items-center justify-center p-4" role="presentation">
+    <div dir={direction} className="fixed inset-0 z-100 flex items-end justify-center p-2 sm:items-center sm:p-4" role="presentation">
       <button
         type="button"
         aria-label="Close daily targets"
@@ -95,11 +95,11 @@ export function DailyGoalsModal({ isOpen, onClose }: DailyGoalsModalProps) {
           aria-label="Daily targets"
           tabIndex={-1}
           className={cx(
-            "relative flex h-[min(640px,calc(100dvh-32px))] w-[min(520px,calc(100vw-32px))] flex-col",
+            "relative flex h-[min(640px,calc(100dvh-16px))] w-full max-w-[520px] flex-col sm:h-[min(640px,calc(100dvh-32px))]",
             "overflow-clip rounded-3xl bg-background-full shadow-xs outline-none",
           )}
         >
-          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-separator-border px-6 py-5">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-separator-border px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex min-w-0 flex-col gap-1">
               <h2 className="text-title-3-medium text-text-primary">Daily targets</h2>
               <p className="text-body-2-regular text-text-tertiary">
@@ -123,7 +123,7 @@ export function DailyGoalsModal({ isOpen, onClose }: DailyGoalsModalProps) {
 
           <div className="relative min-h-0 flex-1">
             <div
-              className="h-full overflow-y-auto px-6 py-5"
+              className="h-full overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
               onScroll={(e) => setContentScrolled(e.currentTarget.scrollTop > 0)}
             >
               <SettingsDailyGoals variant="modal" onSaved={showSavedToast} />

@@ -47,6 +47,19 @@ export async function getUser(email: string): Promise<User[]> {
   }
 }
 
+export async function updateUserName(id: string, name: string) {
+  try {
+    const [row] = await db
+      .update(user)
+      .set({ name, updatedAt: new Date() })
+      .where(eq(user.id, id))
+      .returning({ name: user.name });
+    return row ?? null;
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
 export async function getUserById(id: string): Promise<User | null> {
   try {
     const rows = await db.select().from(user).where(eq(user.id, id)).limit(1);

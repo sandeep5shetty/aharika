@@ -16,10 +16,10 @@ import { Select, SelectItem } from "@/components/base/select/select";
 import type { ActivityLevel, BodyProfile } from "@/lib/nutrition/body-profile";
 import type { UserGoals } from "@/lib/nutrition/goals";
 import { withBasePath } from "@/lib/constants";
+import { cx } from "@/utils/cx";
 import { notifyNutritionDataUpdated } from "@/lib/nutrition/events";
+import { SETTINGS_CONTROL_WIDTH, SETTINGS_SELECT_TRIGGER } from "./settings-control-width";
 import { SettingsCard, SettingsRow } from "./settings-rows";
-
-const SELECT_TRIGGER = "h-8 w-full max-w-[202px] gap-1 rounded-lg px-2 py-1.5";
 
 type GoalField = keyof Pick<UserGoals, "calories" | "proteinG" | "carbsG" | "fatG" | "fiberG">;
 
@@ -276,7 +276,7 @@ export function SettingsDailyGoals({
             }
           }}
           className="w-[202px] shrink-0"
-          triggerClassName={SELECT_TRIGGER}
+          triggerClassName={SETTINGS_SELECT_TRIGGER}
         >
           <SelectItem id="female" textValue="Female">Female</SelectItem>
           <SelectItem id="male" textValue="Male">Male</SelectItem>
@@ -329,7 +329,7 @@ export function SettingsDailyGoals({
             }
           }}
           className="w-[202px] shrink-0"
-          triggerClassName={SELECT_TRIGGER}
+          triggerClassName={SETTINGS_SELECT_TRIGGER}
         >
           {ACTIVITY_OPTIONS.map((opt) => (
             <SelectItem key={opt.id} id={opt.id} textValue={opt.label}>

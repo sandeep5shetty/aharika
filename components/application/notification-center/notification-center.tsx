@@ -189,11 +189,11 @@ export function NotificationCenter({
       )}
       {...props}
     >
-      <div className="flex flex-col gap-3 p-4 pb-1.5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 p-3 pb-1.5 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="text-title-3-medium text-text-primary">{title}</h2>
-            <p className="text-body-regular text-text-secondary">
+            <p className="text-body-2-regular text-text-secondary sm:text-body-regular">
               {unreadCount === 0 ? "No unread notifications" : `${unreadCount} unread`}
             </p>
           </div>
@@ -202,6 +202,7 @@ export function NotificationCenter({
             size="small"
             onClick={markAllRead}
             disabled={unreadCount === 0}
+            className="w-fit shrink-0 self-start"
           >
             Mark all read
           </Button>
@@ -214,13 +215,13 @@ export function NotificationCenter({
             const next = [...(keys as Set<string>)][0] as NotificationCenterTab | undefined;
             if (next) setTab(next);
           }}
-          className="flex w-full"
+          className="flex w-full min-w-0"
         >
           {tabs.map(({ id, label }) => (
             <SegmentedControlItem
               key={id}
               id={id}
-              className="flex-1"
+              className="min-w-0 flex-1"
             >
               <TabLabel label={label} count={tabCounts[id]} />
             </SegmentedControlItem>
@@ -230,7 +231,7 @@ export function NotificationCenter({
 
       <div className="bg-notification-center-background p-1.5">
         <div className="overflow-hidden rounded-2xl bg-background-secondary-default">
-          <div className="max-h-[516px] overflow-y-auto overscroll-contain bg-background-secondary-default p-2">
+          <div className="max-h-[min(516px,65dvh)] overflow-y-auto overscroll-contain bg-background-secondary-default p-2">
             {visibleNotifications.length === 0 ? (
               <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-2xl bg-background-primary-default px-6 text-center">
                 <span className="flex size-11 items-center justify-center rounded-full bg-background-secondary-default text-foreground-icon-secondary">
@@ -248,7 +249,7 @@ export function NotificationCenter({
                   return (
                     <article
                       key={item.id}
-                      className="group/item relative flex gap-3 rounded-notification-card bg-background-primary-default px-3 py-3"
+                      className="group/item relative flex gap-2.5 rounded-notification-card bg-background-primary-default px-2.5 py-3 sm:gap-3 sm:px-3"
                     >
                       <NotificationVisual item={item} />
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">

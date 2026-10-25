@@ -18,9 +18,8 @@ import {
   SettingsSectionLabel,
   SettingsValueField,
 } from "./settings-rows";
+import { SETTINGS_CONTROL_WIDTH, SETTINGS_SELECT_TRIGGER } from "./settings-control-width";
 import { SettingsDailyGoals } from "./settings-daily-goals";
-
-const SELECT_TRIGGER = "h-8 w-[202px] max-w-full gap-1 rounded-lg px-2 py-1.5";
 
 const TIMEZONE_OPTIONS = [
   { id: "Asia/Kolkata", label: "India (IST)" },
@@ -33,6 +32,7 @@ const TIMEZONE_OPTIONS = [
 ] as const;
 
 const MEAL_NUDGES_KEY = "aharika-meal-nudges";
+const COACH_MEMORY_KEY = "aharika-coach-memory";
 
 function SavableInput({
   initialValue,
@@ -41,7 +41,7 @@ function SavableInput({
   ...inputProps
 }: {
   initialValue: string;
-  onSaved?: () => void;
+  onSaved?: (value: string) => void | Promise<void>;
   readOnly?: boolean;
 } & Omit<ComponentProps<typeof Input>, "value" | "onChange" | "defaultValue">) {
   const localize = useTemplateCopy();
@@ -55,7 +55,7 @@ function SavableInput({
 
   if (readOnly) {
     return localize((
-      <SettingsValueField icon={inputProps.leadingIcon} className="w-[202px]">
+      <SettingsValueField icon={inputProps.leadingIcon} className={SETTINGS_CONTROL_WIDTH}>
         {initialValue || "—"}
       </SettingsValueField>
     ));
@@ -71,19 +71,20 @@ function SavableInput({
         if (event.key === "Enter") (event.target as HTMLElement).blur();
       }}
       onBlur={() => {
-        if (value !== committed.current) {
-          committed.current = value;
-          onSaved?.();
+        const next = value.trim();
+        if (next && next !== committed.current) {
+          committed.current = next;
+          void onSaved?.(next);
         }
       }}
-      className={cx("w-[202px] shrink-0", inputProps.className)}
+      className={cx(SETTINGS_CONTROL_WIDTH, inputProps.className)}
     />
   ));
 }
 
 export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
   const localize = useTemplateCopy();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { openLogOutConfirm } = useLogOutConfirm();
 
   const isGuest =
@@ -98,12 +99,15 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
 
   const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [mealNudges, setMealNudges] = useState(true);
+  const [coachMemory, setCoachMemory] = useState(true);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(MEAL_NUDGES_KEY);
-      if (stored !== null) setMealNudges(stored === "true");
+      const storedNudges = window.localStorage.getItem(MEAL_NUDGES_KEY);
+      if (storedNudges !== null) setMealNudges(storedNudges === "true");
+      const storedMemory = window.localStorage.getItem(COACH_MEMORY_KEY);
+      if (storedMemory !== null) setCoachMemory(storedMemory === "true");
     } catch {
       // ignore
     }
@@ -144,6 +148,17 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
     }
   };
 
+  const saveDisplayName = async (name: string) => {
+    const response = await fetch(withBasePath("/api/user/profile"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) return;
+    await update({ user: { name } });
+    onSaved?.();
+  };
+
   const onMealNudgesChange = (enabled: boolean) => {
     setMealNudges(enabled);
     try {
@@ -154,7 +169,15 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
     onSaved?.();
   };
 
-  const accountLabel = isGuest ? "Guest trial" : "Member";
+  const onCoachMemoryChange = (enabled: boolean) => {
+    setCoachMemory(enabled);
+    try {
+      window.localStorage.setItem(COACH_MEMORY_KEY, String(enabled));
+    } catch {
+      // ignore
+    }
+    onSaved?.();
+  };
 
   return localize((
     <div className="flex w-full flex-col gap-6">
@@ -183,11 +206,8 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
               leadingIcon={RiUserLine}
               initialValue={displayName}
               readOnly={isGuest}
-              onSaved={onSaved}
+              onSaved={saveDisplayName}
             />
-          </SettingsRow>
-          <SettingsRow label="Account">
-            <SettingsValueField className="w-[202px]">{accountLabel}</SettingsValueField>
           </SettingsRow>
         </SettingsCard>
       </div>
@@ -204,8 +224,8 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
               selectedKey={timezone}
               onSelectionChange={saveTimezone}
               isDisabled={!prefsLoaded}
-              className="w-[202px] shrink-0"
-              triggerClassName={SELECT_TRIGGER}
+              className={SETTINGS_CONTROL_WIDTH}
+              triggerClassName={SETTINGS_SELECT_TRIGGER}
             >
               {TIMEZONE_OPTIONS.map((zone) => (
                 <SelectItem key={zone.id} id={zone.id} textValue={zone.label}>
@@ -228,9 +248,11 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
             label="Coach memory"
             description="Recent meals and habits personalize your advice"
           >
-            <SettingsValueField className="w-[202px]">
-              {isGuest ? "Trial only" : "On"}
-            </SettingsValueField>
+            <Switch
+              aria-label="Coach memory"
+              isSelected={coachMemory}
+              onChange={onCoachMemoryChange}
+            />
           </SettingsRow>
         </SettingsCard>
       </div>

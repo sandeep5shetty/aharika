@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { MouseEvent } from "react";
 
+import { ThemeToggle } from "@/components/application/theme/theme-toggle";
 import { ButtonLink } from "@/components/base/buttons/button";
 import { LinkButton } from "@/components/base/buttons/link-button";
 import { RiArrowRightLine } from "@remixicon/react";
@@ -42,8 +43,10 @@ export function LandingNavbar() {
   const footerHref = `${homeHref}#footer`;
 
   return (
-    <header className="flex w-full items-center justify-between border-b border-white/50 px-4 py-6 md:px-8">
-      <Link href={homeHref} className="flex items-center gap-2">
+    <header
+      className="grid w-full grid-cols-[1fr_auto_1fr] items-center border-b border-white/50 px-4 py-6 md:px-8"
+    >
+      <Link href={homeHref} className="flex items-center gap-2 justify-self-start">
         <Image
           src={logoSrc}
           alt="Aharika logo"
@@ -52,12 +55,15 @@ export function LandingNavbar() {
           className="size-7"
           unoptimized
         />
-        <span className="font-moonet-wordmark text-xl font-bold tracking-tight text-text-primary">
+        <span className="font-moonet-wordmark text-xl font-bold tracking-tight text-text-wordmark">
           AHARIKA
         </span>
       </Link>
 
-      <nav className="hidden items-center gap-4 md:flex lg:gap-8" aria-label="Primary">
+      <nav
+        className="hidden items-center justify-center gap-4 justify-self-center md:flex lg:gap-8"
+        aria-label="Primary"
+      >
         <Link
           href={featuresHref}
           className={navLinkClass}
@@ -84,8 +90,8 @@ export function LandingNavbar() {
         </Link>
       </nav>
 
-    <div className="flex items-center gap-4">
-        
+    <div className="flex items-center justify-self-end gap-4">
+        <ThemeToggle appearance="segmented" size="small" />
         <LinkButton href={loginHref} className="hidden sm:inline-flex">
           Sign in
         </LinkButton>

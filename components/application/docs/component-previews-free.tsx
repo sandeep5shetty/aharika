@@ -980,7 +980,7 @@ export const FREE_COMPONENT_PREVIEWS: Partial<Record<PreviewHref, () => React.Re
   "/components/agent-thinking": AgentThinkingPreview,
   "/components/settings-modal": () => (
     <InlineScaled width={560} factor={0.9}>
-      <SettingsGeneral planArtSrc="/templates/settings-plan-art.png" />
+      <SettingsGeneral />
     </InlineScaled>
   ),
   "/components/announcement": () => (

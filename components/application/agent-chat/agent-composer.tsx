@@ -9,6 +9,7 @@ import { type FormEvent, type KeyboardEvent, useRef } from "react";
 import { ComposerLoader } from "@/components/application/composer-loader/composer-loader";
 import {
   useVoiceInputPhase,
+  useVoiceTranscriptDelivery,
   VoiceInputMicTrigger,
   VoiceInputProvider,
   VoiceRecordingBar,
@@ -31,9 +32,8 @@ const COMPOSER_PILL_RADIUS_PX = COMPOSER_PILL_HEIGHT_PX / 2;
 export interface AgentComposerProps {
   value: string;
   onValueChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (text?: string) => void;
   onStop: () => void;
-  onVoiceTranscript: (text: string) => void;
   busy: boolean;
   chatStatus: UseChatHelpers<ChatMessage>["status"];
   voiceEnabled?: boolean;
@@ -45,7 +45,6 @@ export function AgentComposer({
   onValueChange,
   onSubmit,
   onStop,
-  onVoiceTranscript,
   busy,
   chatStatus,
   voiceEnabled = true,
@@ -82,7 +81,14 @@ export function AgentComposer({
       {voiceEnabled ? (
         <VoiceInputProvider
           disabled={busy}
-          onTranscript={onVoiceTranscript}
+          onTranscript={(text, delivery) => {
+            if (delivery === "send") {
+              onSubmit(text);
+              return;
+            }
+            onValueChange(text);
+            requestAnimationFrame(() => inputRef.current?.focus());
+          }}
           status={chatStatus}
         >
           <ComposerWithLoaderVoice {...formProps} />
@@ -100,11 +106,12 @@ export function AgentComposer({
   ));
 }
 
-type ComposerFormCoreProps = Omit<AgentComposerFormProps, "phase">;
+type ComposerFormCoreProps = Omit<AgentComposerFormProps, "delivery" | "phase">;
 
 function ComposerWithLoaderVoice(formProps: ComposerFormCoreProps) {
   const phase = useVoiceInputPhase();
-  return <ComposerLoaderShell {...formProps} phase={phase} />;
+  const delivery = useVoiceTranscriptDelivery();
+  return <ComposerLoaderShell {...formProps} delivery={delivery} phase={phase} />;
 }
 
 function ComposerWithLoaderIdle(formProps: ComposerFormCoreProps) {
@@ -112,9 +119,11 @@ function ComposerWithLoaderIdle(formProps: ComposerFormCoreProps) {
 }
 
 function ComposerLoaderShell({
+  delivery = "composer",
   phase,
   ...formProps
 }: ComposerFormCoreProps & {
+  delivery?: "composer" | "send";
   phase: AgentComposerFormProps["phase"];
 }) {
   return (
@@ -129,7 +138,7 @@ function ComposerLoaderShell({
       arc={110}
       speed={4.2}
     >
-      <AgentComposerForm {...formProps} phase={phase} />
+      <AgentComposerForm {...formProps} delivery={delivery} phase={phase} />
     </ComposerLoader>
   );
 }
@@ -143,6 +152,7 @@ type AgentComposerFormProps = {
   inputRef: React.RefObject<HTMLInputElement | null>;
   value: string;
   voiceEnabled: boolean;
+  delivery: "composer" | "send";
   phase: "idle" | "recording" | "transcribing";
 };
 
@@ -155,9 +165,11 @@ function AgentComposerForm({
   inputRef,
   value,
   voiceEnabled,
+  delivery,
   phase,
 }: AgentComposerFormProps) {
-  const showRecordingBar = phase === "recording" || phase === "transcribing";
+  const showRecordingBar =
+    phase === "recording" || (phase === "transcribing" && delivery === "send");
 
   return (
     <form
@@ -174,8 +186,8 @@ function AgentComposerForm({
           <VoiceRecordingBar />
           <p className="text-center text-caption-1-semibold text-text-tertiary">
             {phase === "transcribing"
-              ? "Transcribing your meal…"
-              : "Listening… tap send or stop when finished"}
+              ? "Transcribing your voice…"
+              : "Listening… pause to edit, or tap send to log it"}
           </p>
         </div>
       ) : (
@@ -192,9 +204,9 @@ function AgentComposerForm({
             value={value}
             onChange={(event) => onValueChange(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="What did you eat?"
+            placeholder={phase === "transcribing" ? "Transcribing your voice…" : "What did you eat?"}
             autoComplete="off"
-            disabled={busy}
+            disabled={busy || phase === "transcribing"}
             className="h-5 min-w-0 flex-1 bg-transparent text-body-regular text-text-primary caret-text-primary outline-none placeholder:text-text-tertiary disabled:cursor-not-allowed disabled:opacity-60"
           />
 

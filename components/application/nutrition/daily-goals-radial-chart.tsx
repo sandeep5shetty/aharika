@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { RiArrowDownSLine } from "@remixicon/react";
 import {
   Cell,
   LabelList,
@@ -216,6 +217,26 @@ export function DailyGoalsRadialChart({
   const bento = layout === "bento";
   const rings = useMemo(() => buildRings(totals, goals), [totals, goals]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [chartExpanded, setChartExpanded] = useState(() => {
+    if (layout !== "compact" && layout !== "bento") return true;
+    try {
+      return window.localStorage.getItem("aharika:dashboard-targets-chart-expanded") !== "0";
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleChartExpanded = () => {
+    setChartExpanded((open) => {
+      const next = !open;
+      try {
+        window.localStorage.setItem("aharika:dashboard-targets-chart-expanded", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const activeRing =
     activeIndex !== null && activeIndex >= 0 && activeIndex < rings.length
@@ -233,9 +254,35 @@ export function DailyGoalsRadialChart({
   const displayMacros = useMemo(() => [...rings].reverse(), [rings]);
   const macroLegendRow1 = tile ? displayMacros.slice(0, 3) : [];
   const macroLegendRow2 = tile ? displayMacros.slice(3) : [];
+  const chartFrameRef = useRef<HTMLDivElement>(null);
+  const centerLabelRef = useRef<HTMLDivElement>(null);
+  const [centerScale, setCenterScale] = useState(1);
+  const innerRadiusFraction = tile ? (bento ? 0.28 : 0.26) : 0.22;
+
+  useLayoutEffect(() => {
+    const frame = chartFrameRef.current;
+    const label = centerLabelRef.current;
+    if (!frame || !label) return;
+
+    const fit = () => {
+      const bounds = frame.getBoundingClientRect();
+      const hole = Math.min(bounds.width, bounds.height) * innerRadiusFraction * 0.78;
+      const width = label.scrollWidth;
+      const height = label.scrollHeight;
+      if (hole <= 0 || width <= 0 || height <= 0) return;
+      const next = Math.min(1, hole / width, hole / height);
+      setCenterScale((current) => (Math.abs(current - next) < 0.015 ? current : next));
+    };
+
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [centerPct, centerTitle, chartExpanded, innerRadiusFraction]);
 
   const radialChart = (
     <div
+      ref={chartFrameRef}
       className={cx(
         "relative w-full",
         tile
@@ -245,20 +292,32 @@ export function DailyGoalsRadialChart({
     >
       <div
         className={cx(
-          "pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center transition-opacity duration-150",
+          "pointer-events-none absolute inset-0 z-0 flex items-center justify-center transition-opacity duration-150",
           activeIndex !== null && "opacity-0",
         )}
         aria-hidden
       >
-        <p
-          className={cx(
-            "tabular-nums text-text-primary",
-            tile ? (bento ? "text-title-1-medium" : "text-title-2-medium") : "text-title-1-medium",
-          )}
+        <div
+          ref={centerLabelRef}
+          className="flex max-w-full flex-col items-center text-center"
+          style={{ transform: `scale(${centerScale})` }}
         >
-          {centerPct}%
-        </p>
-        <p className="text-caption-1-semibold text-text-tertiary">{centerTitle}</p>
+          <p
+            className={cx(
+              "tabular-nums text-text-primary",
+              tile
+                ? bento
+                  ? "text-title-3-medium sm:text-title-2-medium lg:text-title-1-medium"
+                  : "text-title-3-medium sm:text-title-2-medium"
+                : "text-title-2-medium sm:text-title-1-medium",
+            )}
+          >
+            {centerPct}%
+          </p>
+          <p className="whitespace-nowrap text-caption-2-semibold text-text-tertiary sm:text-caption-1-semibold">
+            {centerTitle}
+          </p>
+        </div>
       </div>
       <div className="relative z-10 h-full w-full min-h-[120px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -328,14 +387,33 @@ export function DailyGoalsRadialChart({
         )}
       >
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className={cx(tile ? "text-body-medium text-text-secondary" : "text-title-3-semibold text-text-primary")}>
-            {title}
-          </h2>
-          {!tile ? (
-            <p className="text-body-2-regular text-text-tertiary">
-              Progress toward your daily macros — hover a ring for detail.
-            </p>
-          ) : null}
+          {tile ? (
+            <button
+              type="button"
+              onClick={toggleChartExpanded}
+              aria-expanded={chartExpanded}
+              className={cx(
+                "flex w-fit max-w-full items-center gap-1 text-start",
+                "cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring",
+              )}
+            >
+              <h2 className="text-body-medium text-text-secondary">{title}</h2>
+              <RiArrowDownSLine
+                aria-hidden
+                className={cx(
+                  "size-4 shrink-0 text-foreground-icon-secondary transition-transform duration-200",
+                  chartExpanded && "rotate-180",
+                )}
+              />
+            </button>
+          ) : (
+            <>
+              <h2 className="text-title-3-semibold text-text-primary">{title}</h2>
+              <p className="text-body-2-regular text-text-tertiary">
+                Progress toward your daily macros — hover a ring for detail.
+              </p>
+            </>
+          )}
         </div>
         {!tile ? (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -362,7 +440,7 @@ export function DailyGoalsRadialChart({
         )}
       </div>
 
-      {tile ? (
+      {tile && chartExpanded ? (
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className={cx("flex shrink-0 flex-col", bento ? "gap-1.5" : "gap-1")}>
             <CompactMacroRow rows={macroLegendRow1} activeRingId={activeRing?.id} columns={3} />

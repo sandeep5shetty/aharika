@@ -38,10 +38,25 @@ export const {
 } = NextAuth({
   ...authConfig,
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.type = user.type;
+        if (typeof user.name === "string") {
+          token.name = user.name;
+        }
+      }
+
+      if (trigger === "update") {
+        const nextName =
+          typeof session?.user?.name === "string"
+            ? session.user.name
+            : typeof session?.name === "string"
+              ? session.name
+              : null;
+        if (nextName) {
+          token.name = nextName;
+        }
       }
 
       return token;
@@ -50,6 +65,9 @@ export const {
       if (session.user) {
         session.user.id = token.id;
         session.user.type = token.type;
+        if (typeof token.name === "string") {
+          session.user.name = token.name;
+        }
       }
 
       return session;

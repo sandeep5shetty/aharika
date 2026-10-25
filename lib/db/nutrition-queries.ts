@@ -184,6 +184,7 @@ export async function updateMealRecord(
     fatG: number;
     fiberG: number;
     confidence?: ConfidenceLevel;
+    rawText?: string;
   }
 ) {
   const [updated] = await db
@@ -197,6 +198,7 @@ export async function updateMealRecord(
       proteinG: patch.proteinG,
       ...(patch.mealType ? { mealType: patch.mealType } : {}),
       ...(patch.confidence ? { confidence: patch.confidence } : {}),
+      ...(patch.rawText ? { rawText: patch.rawText } : {}),
     })
     .where(and(eq(meal.id, mealId), eq(meal.userId, userId)))
     .returning();

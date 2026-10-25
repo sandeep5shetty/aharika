@@ -1,14 +1,18 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { RiArrowLeftLine, RiHammerLine, RiHomeLine } from "@remixicon/react";
 
 import { ButtonLink } from "@/components/base/buttons/button";
 import { LANDING_PATH, withBasePath } from "@/lib/constants";
 import { cx } from "@/utils/cx";
 
+type SettingsIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
+
 export interface SettingsUnderConstructionProps {
   title: string;
   description?: string;
+  icon?: SettingsIcon;
   className?: string;
 }
 
@@ -19,6 +23,7 @@ export interface SettingsUnderConstructionProps {
 export function SettingsUnderConstruction({
   title,
   description = "We're building something useful here. This section will be available soon — check back later.",
+  icon: Icon = RiHammerLine,
   className,
 }: SettingsUnderConstructionProps) {
   return (
@@ -35,7 +40,7 @@ export function SettingsUnderConstruction({
         )}
         aria-hidden
       >
-        <RiHammerLine className="size-10 text-accent-600" />
+        <Icon className="size-10 text-accent-600" />
       </div>
 
       <p className="text-caption-1-semibold tracking-wide text-accent-700 uppercase">Coming soon</p>

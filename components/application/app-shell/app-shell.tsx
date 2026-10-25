@@ -24,7 +24,6 @@ import {
 } from "@/components/application/dashboard/dashboard-sidebar";
 import { NotificationBell } from "@/components/application/app-shell/notification-bell";
 import { NutritionNotificationsProvider } from "@/components/application/app-shell/nutrition-notifications-provider";
-import { ProOfferCard } from "@/components/application/app-shell/pro-offer-card";
 import { Button } from "@/components/base/buttons/button";
 import { IconButton } from "@/components/base/buttons/icon-button";
 import { CHAT_PATH } from "@/lib/constants";
@@ -180,7 +179,7 @@ export function AppShell({
                   {heading}
                 </h1>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2.5">
+              <div className="ms-auto flex flex-wrap items-center justify-end gap-2.5">
                 {actions !== undefined ? actions : (
                   <>
                     <NotificationBell />
@@ -198,7 +197,6 @@ export function AppShell({
           <div className="flex w-full flex-col gap-4 pb-4">{children}</div>
         </div>
       </main>
-      <ProOfferCard />
     </div>
     </NutritionNotificationsProvider>
   ));

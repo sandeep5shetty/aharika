@@ -652,7 +652,6 @@ export function DashboardSidebar({
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           defaultPage={settingsPage}
-          planArtSrc="/templates/settings-plan-art.png"
         />
       )}
 

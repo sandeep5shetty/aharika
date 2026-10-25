@@ -58,12 +58,18 @@ export function LandingHero() {
             "flex w-fit items-center gap-2 rounded-full border border-border-button-default",
             "bg-background-full/95 p-1 shadow-sm backdrop-blur-md transition-colors",
             "hover:bg-background-primary-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring",
+            "dark:border-border-button-default dark:bg-background-primary-default/95 dark:hover:bg-background-secondary-default",
           )}
         >
           <span className="rounded-full bg-accent-600 px-3 py-1 text-caption-1-semibold text-white">
             New
           </span>
-          <span className="flex items-center gap-0.5 pe-2 text-body-2-medium text-text-secondary">
+          <span
+            className={cx(
+              "flex items-center gap-0.5 pe-2 text-body-2-medium text-text-secondary",
+              "dark:text-text-primary",
+            )}
+          >
             Voice logging with Sarvam STT
             <RiArrowRightSLine className="size-4 text-foreground-icon-secondary" aria-hidden />
           </span>
@@ -73,6 +79,7 @@ export function LandingHero() {
           className={cx(
             "font-instrument-serif mt-6 max-w-4xl px-4 text-center text-4xl font-normal leading-[1.05] tracking-tight text-black opacity-80",
             "[text-shadow:0px_4px_4px_rgba(0,0,0,0.09)] md:text-7xl",
+            "dark:text-text-primary dark:opacity-100 dark:[text-shadow:none]",
           )}
         >
           Someone who cares

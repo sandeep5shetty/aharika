@@ -35,6 +35,7 @@ import {
 } from "@/lib/nutrition/day-shared";
 import { NUTRITION_DATA_UPDATED } from "@/lib/nutrition/events";
 import { DailyGoalsRadialChart } from "@/components/application/nutrition/daily-goals-radial-chart";
+import { MealEditModal } from "@/components/application/nutrition/meal-edit-modal";
 
 type DashboardProps = {
   timeZone: string;
@@ -100,6 +101,7 @@ export function NutritionDashboard({
   const router = useRouter();
   const base = useStarterBase();
   const [tableMeals, setTableMeals] = useState(initialTableMeals);
+  const [editingMeal, setEditingMeal] = useState<NutritionMealRow | null>(null);
 
   useEffect(() => {
     setTableMeals(initialTableMeals);
@@ -233,7 +235,18 @@ export function NutritionDashboard({
         />
       </section>
 
-      <NutritionMealsTable rows={tableMeals} onDelete={deleteMeal} />
+      <NutritionMealsTable
+        rows={tableMeals}
+        onDelete={deleteMeal}
+        onEdit={setEditingMeal}
+      />
+      <MealEditModal
+        meal={editingMeal}
+        onClose={() => setEditingMeal(null)}
+        onSaved={(meal) => {
+          setTableMeals((prev) => prev.map((row) => (row.id === meal.id ? meal : row)));
+        }}
+      />
 
       <p className="text-body-2-regular text-text-tertiary">
         Estimate targets from your profile in Settings → Profile, or edit numbers in Daily targets (sidebar).

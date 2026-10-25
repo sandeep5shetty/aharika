@@ -58,8 +58,6 @@ export interface SettingsModalProps {
   onClose: () => void;
   /** Page selected each time the modal opens. */
   defaultPage?: SettingsPage;
-  /** Optional product artwork used by the animated Current plan card. */
-  planArtSrc?: string;
 }
 
 type IconComponent = ComponentType<{
@@ -106,7 +104,6 @@ export function SettingsModal({
   isOpen,
   onClose,
   defaultPage = "general",
-  planArtSrc,
 }: SettingsModalProps) {
   const direction = useDirection();
   const [page, setPage] = useState<SettingsPage>(defaultPage);
@@ -313,7 +310,7 @@ export function SettingsModal({
               ) : page === "privacy" ? (
                 <SettingsPrivacy />
               ) : (
-                <SettingsGeneral planArtSrc={planArtSrc} />
+                <SettingsGeneral />
               )}
             </div>
             {/* Progressive top fade — eases in once the page is scrolled so

@@ -30,15 +30,19 @@ import { getVoiceTranscriptionFormFields } from "@/components/application/agent-
 
 const MAX_RECORDING_DURATION_MS = 25_000;
 const WAVEFORM_BAR_COUNT = 52;
+const WAVEFORM_BAR_COUNT_MOBILE = 24;
+const MOBILE_WAVEFORM_QUERY = "(max-width: 480px)";
 
 type VoicePhase = "idle" | "recording" | "transcribing";
+type TranscriptDelivery = "composer" | "send";
 
 type VoiceInputContextValue = {
   phase: VoicePhase;
+  delivery: TranscriptDelivery;
   levels: number[];
   startRecording: () => void;
   cancelRecording: () => void;
-  finishRecording: () => void;
+  finishRecording: (delivery: TranscriptDelivery) => void;
   disabled: boolean;
 };
 
@@ -60,14 +64,30 @@ function normalizeRecordingMime(mimeType: string): string {
   return "audio/webm";
 }
 
-function useAudioLevels(stream: MediaStream | null, active: boolean) {
+function useWaveformBarCount() {
+  const [barCount, setBarCount] = useState(WAVEFORM_BAR_COUNT);
+
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_WAVEFORM_QUERY);
+    const update = () => {
+      setBarCount(media.matches ? WAVEFORM_BAR_COUNT_MOBILE : WAVEFORM_BAR_COUNT);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return barCount;
+}
+
+function useAudioLevels(stream: MediaStream | null, active: boolean, barCount: number) {
   const [levels, setLevels] = useState<number[]>(() =>
-    Array.from({ length: WAVEFORM_BAR_COUNT }, () => 0.15),
+    Array.from({ length: barCount }, () => 0.15),
   );
 
   useEffect(() => {
     if (!stream || !active) {
-      setLevels(Array.from({ length: WAVEFORM_BAR_COUNT }, () => 0.15));
+      setLevels(Array.from({ length: barCount }, () => 0.15));
       return;
     }
 
@@ -83,8 +103,8 @@ function useAudioLevels(stream: MediaStream | null, active: boolean) {
 
     const tick = () => {
       analyser.getByteFrequencyData(frequencyData);
-      const sliceWidth = Math.floor(frequencyData.length / WAVEFORM_BAR_COUNT);
-      const next = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, index) => {
+      const sliceWidth = Math.max(1, Math.floor(frequencyData.length / barCount));
+      const next = Array.from({ length: barCount }, (_, index) => {
         const start = index * sliceWidth;
         let sum = 0;
         for (let i = 0; i < sliceWidth; i += 1) {
@@ -105,7 +125,7 @@ function useAudioLevels(stream: MediaStream | null, active: boolean) {
       analyser.disconnect();
       audioContext.close().catch(() => undefined);
     };
-  }, [active, stream]);
+  }, [active, barCount, stream]);
 
   return levels;
 }
@@ -120,7 +140,7 @@ function VoiceWaveform({
   return (
     <div
       aria-hidden
-      className="flex h-9 min-w-0 flex-1 items-center justify-center gap-[3px] px-1"
+      className="flex h-8 min-w-0 flex-1 items-center justify-center gap-[2px] px-0.5 sm:h-9 sm:gap-[3px] sm:px-1"
     >
       {levels.map((level, index) => (
         <span
@@ -145,7 +165,7 @@ function PureVoiceRecordingBar() {
   return (
     <div
       className={cx(
-        "flex w-full min-w-0 flex-1 items-center gap-2 rounded-full border px-2 py-1.5 shadow-xs backdrop-blur-md",
+        "flex w-full min-w-0 flex-1 items-center gap-1 rounded-full border px-1.5 py-1 shadow-xs backdrop-blur-md sm:gap-2 sm:px-2 sm:py-1.5",
         phase === "recording"
           ? "border-accent-400 bg-background-primary-default ring-1 ring-accent-200"
           : "border-border-button-default bg-background-primary-default",
@@ -165,20 +185,20 @@ function PureVoiceRecordingBar() {
       <VoiceWaveform active={phase === "recording"} levels={levels} />
 
       <IconButton
-        aria-label="Stop recording"
+        aria-label="Pause and put the transcript in the message box"
         className="shrink-0"
         disabled={isTranscribing}
         icon={RiStopFill}
-        onClick={finishRecording}
+        onClick={() => finishRecording("composer")}
         size="small"
         type="button"
       />
 
       <button
-        aria-label="Send recording for transcription"
-        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label="Send voice message"
+        className="hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
         disabled={isTranscribing}
-        onClick={finishRecording}
+        onClick={() => finishRecording("send")}
         type="button"
       >
         <RiArrowUpLine className="size-5" aria-hidden />
@@ -228,10 +248,11 @@ export function VoiceInputProvider({
 }: {
   children: ReactNode;
   disabled?: boolean;
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string, delivery: TranscriptDelivery) => void;
   status: UseChatHelpers<ChatMessage>["status"];
 }) {
   const [phase, setPhase] = useState<VoicePhase>("idle");
+  const [delivery, setDelivery] = useState<TranscriptDelivery>("composer");
   const [analysisStream, setAnalysisStream] = useState<MediaStream | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -240,9 +261,11 @@ export function VoiceInputProvider({
   const lastBlobRef = useRef<Blob | null>(null);
   const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldTranscribeRef = useRef(true);
+  const deliveryRef = useRef<TranscriptDelivery>("composer");
   const recordingMimeRef = useRef("audio/webm");
 
-  const levels = useAudioLevels(analysisStream, phase === "recording");
+  const waveformBarCount = useWaveformBarCount();
+  const levels = useAudioLevels(analysisStream, phase === "recording", waveformBarCount);
 
   const stopStream = useCallback(() => {
     for (const track of streamRef.current?.getTracks() ?? []) {
@@ -312,7 +335,7 @@ export function VoiceInputProvider({
         if (!text) {
           throw new Error("Empty transcript");
         }
-        onTranscript(text);
+        onTranscript(text, deliveryRef.current);
       } catch (error) {
         if (error instanceof ChatbotError) {
           const detail =
@@ -368,6 +391,8 @@ export function VoiceInputProvider({
       streamRef.current = stream;
       setAnalysisStream(stream);
       chunksRef.current = [];
+      deliveryRef.current = "composer";
+      setDelivery("composer");
       shouldTranscribeRef.current = true;
 
       const preferredTypes = [
@@ -464,7 +489,9 @@ export function VoiceInputProvider({
     stopRecorder();
   }, [stopRecorder]);
 
-  const finishRecording = useCallback(() => {
+  const finishRecording = useCallback((nextDelivery: TranscriptDelivery) => {
+    deliveryRef.current = nextDelivery;
+    setDelivery(nextDelivery);
     shouldTranscribeRef.current = true;
     stopRecorder();
   }, [stopRecorder]);
@@ -484,6 +511,7 @@ export function VoiceInputProvider({
   const value = useMemo<VoiceInputContextValue>(
     () => ({
       cancelRecording,
+      delivery,
       disabled: Boolean(disabled) || status !== "ready",
       finishRecording,
       levels,
@@ -492,6 +520,7 @@ export function VoiceInputProvider({
     }),
     [
       cancelRecording,
+      delivery,
       disabled,
       finishRecording,
       levels,
@@ -508,4 +537,8 @@ export function VoiceInputProvider({
 
 export function useVoiceInputPhase() {
   return useVoiceInputContext().phase;
+}
+
+export function useVoiceTranscriptDelivery() {
+  return useVoiceInputContext().delivery;
 }

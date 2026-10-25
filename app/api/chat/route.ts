@@ -275,7 +275,7 @@ export async function POST(request: Request) {
             const title = await titlePromise;
             dataStream.write({ data: title, type: "data-chat-title" });
             updateChatTitleById({ chatId: id, title });
-          } catch {
+  } catch {
             /* non-fatal */
           }
         }

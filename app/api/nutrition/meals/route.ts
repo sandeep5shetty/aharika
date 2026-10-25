@@ -7,13 +7,24 @@ import {
 } from "@/lib/db/nutrition-queries";
 import { scaleMealItems, sumMealItems } from "@/lib/nutrition/meal-patch";
 import { ChatbotError } from "@/lib/errors";
-import { guestLimitResponse } from "@/lib/guest-limits";
+import { guestLimitResponse, isGuestSession } from "@/lib/guest-limits";
 
-const patchSchema = z.object({
-  id: z.string().uuid(),
-  mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
-  portionScale: z.number().positive().max(5).optional(),
-});
+const patchSchema = z
+  .object({
+    id: z.string().uuid(),
+    mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
+    portionScale: z.number().positive().max(5).optional(),
+    rawText: z.string().trim().min(1).max(500).optional(),
+    confidence: z.enum(["High", "Medium", "Low"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.mealType !== undefined ||
+      value.portionScale !== undefined ||
+      value.rawText !== undefined ||
+      value.confidence !== undefined,
+    { message: "At least one field is required" },
+  );
 
 export async function DELETE(request: Request) {
   const session = await auth();
@@ -36,15 +47,14 @@ export async function PATCH(request: Request) {
   if (!session?.user) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
+  if (isGuestSession(session)) {
+    return guestLimitResponse("meal_logging");
+  }
 
   let json: unknown;
   try {
     json = await request.json();
   } catch {
-  if (session.user.type === "guest") {
-    return guestLimitResponse("meal_logging");
-  }
-
     return new ChatbotError("bad_request:api").toResponse();
   }
 
@@ -58,10 +68,12 @@ export async function PATCH(request: Request) {
     return new ChatbotError("not_found:chat").toResponse();
   }
 
-  const items = parsed.data.portionScale
+  const shouldScale =
+    parsed.data.portionScale !== undefined && parsed.data.portionScale !== 1;
+  const items = shouldScale
     ? scaleMealItems(
         existing.items as import("@/lib/types").MealItemBreakdown[],
-        parsed.data.portionScale
+        parsed.data.portionScale ?? 1,
       )
     : (existing.items as import("@/lib/types").MealItemBreakdown[]);
 
@@ -75,6 +87,8 @@ export async function PATCH(request: Request) {
     items,
     mealType: parsed.data.mealType,
     proteinG: totals.proteinG,
+    rawText: parsed.data.rawText,
+    confidence: parsed.data.confidence,
   });
 
   if (!updated) {
@@ -90,5 +104,7 @@ export async function PATCH(request: Request) {
     items: updated.items,
     mealType: updated.mealType,
     proteinG: updated.proteinG,
+    rawText: updated.rawText,
+    confidence: updated.confidence,
   });
 }
