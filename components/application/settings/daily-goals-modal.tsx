@@ -6,8 +6,6 @@ import { createPortal } from "react-dom";
 import { RiCheckboxCircleFill, RiCloseLine } from "@remixicon/react";
 import { cx } from "@/utils/cx";
 
-import { showToast } from "@/lib/notification-toast/show-toast";
-
 import { SettingsDailyGoals } from "./settings-daily-goals";
 
 export interface DailyGoalsModalProps {
@@ -26,11 +24,6 @@ export function DailyGoalsModal({ isOpen, onClose }: DailyGoalsModalProps) {
   const [savedPhase, setSavedPhase] = useState<"hidden" | "shown" | "leaving">("hidden");
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showSavedToast = () => {
-    showToast({
-      title: "Targets saved",
-      description: "Your daily calorie and macro goals were updated.",
-      status: "success",
-    });
     if (savedTimer.current) clearTimeout(savedTimer.current);
     setSavedPhase("shown");
     savedTimer.current = setTimeout(() => {

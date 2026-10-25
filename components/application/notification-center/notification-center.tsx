@@ -55,6 +55,10 @@ export interface NotificationCenterProps
   tab?: NotificationCenterTab;
   onTabChange?: (tab: NotificationCenterTab) => void;
   onAction?: (notificationId: string, actionId: string) => void;
+  onItemRead?: (notificationId: string) => void;
+  /** When set with onMarkRead, the parent owns which items count as read. */
+  readIds?: ReadonlySet<string>;
+  onMarkRead?: (ids: string[]) => void;
   title?: string;
   emptyMessage?: string;
   tabLabels?: Partial<Record<NotificationCenterTab, string>>;
@@ -129,6 +133,9 @@ export function NotificationCenter({
   tab,
   onTabChange,
   onAction,
+  onItemRead,
+  readIds,
+  onMarkRead,
   title = "Notifications",
   emptyMessage = "You’re all caught up.",
   tabLabels,
@@ -138,15 +145,31 @@ export function NotificationCenter({
 }: NotificationCenterProps) {
   const localize = useTemplateCopy();
   const [internalTab, setInternalTab] = useState<NotificationCenterTab>(defaultTab);
-  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [localReadIds, setLocalReadIds] = useState<Set<string>>(() => new Set());
   const activeTab = tab ?? internalTab;
+  const resolvedReadIds = readIds ?? localReadIds;
+
+  const markRead = (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (onMarkRead) {
+      onMarkRead(ids);
+      return;
+    }
+    setLocalReadIds((current) => {
+      const next = new Set(current);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+    for (const id of ids) onItemRead?.(id);
+  };
 
   const setTab = (nextTab: NotificationCenterTab) => {
     if (tab === undefined) setInternalTab(nextTab);
     onTabChange?.(nextTab);
   };
 
-  const isUnread = (item: NotificationCenterItem) => item.unread === true && !readIds.has(item.id);
+  const isUnread = (item: NotificationCenterItem) =>
+    item.unread === true && !resolvedReadIds.has(item.id);
   const unreadCount = notifications.filter(isUnread).length;
 
   const tabs = useMemo(
@@ -176,7 +199,7 @@ export function NotificationCenter({
   );
 
   const markAllRead = () => {
-    setReadIds(new Set(notifications.filter((item) => item.unread).map((item) => item.id)));
+    markRead(notifications.filter(isUnread).map((item) => item.id));
   };
 
   return localize((
@@ -190,7 +213,7 @@ export function NotificationCenter({
       {...props}
     >
       <div className="flex flex-col gap-3 p-3 pb-1.5 sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="text-title-3-medium text-text-primary">{title}</h2>
             <p className="text-body-2-regular text-text-secondary sm:text-body-regular">
@@ -202,7 +225,7 @@ export function NotificationCenter({
             size="small"
             onClick={markAllRead}
             disabled={unreadCount === 0}
-            className="w-fit shrink-0 self-start"
+            className="w-fit shrink-0"
           >
             Mark all read
           </Button>
@@ -276,7 +299,7 @@ export function NotificationCenter({
                                 size="small"
                                 variant={action.variant ?? "secondary"}
                                 onClick={() => {
-                                  setReadIds((current) => new Set(current).add(item.id));
+                                  markRead([item.id]);
                                   onAction?.(item.id, action.id);
                                 }}
                               >

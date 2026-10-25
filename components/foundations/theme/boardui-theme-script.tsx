@@ -13,7 +13,7 @@ function useEmitBlockingScript() {
   );
 }
 
-export function BoardUIThemeScript() {
+export function ThemeInitScript() {
   if (!useEmitBlockingScript()) return null;
   return (
     <script

@@ -8,7 +8,7 @@ import { Button } from "@/components/base/buttons/button";
 import { cx } from "@/utils/cx";
 
 /**
- * Pagination — designed to match the Board UI dashboard style (no dedicated
+ * Pagination — designed to match the design system dashboard style (no dedicated
  * Figma frame yet, so it reuses shipped tokens/components):
  *   - Previous / Next use the secondary small `Button` (same as the Recent
  *     hires card pager) with arrow icons.

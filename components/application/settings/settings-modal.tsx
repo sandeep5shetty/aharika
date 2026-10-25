@@ -14,7 +14,6 @@ import {
   RiToolsFill,
 } from "@remixicon/react";
 import { cx } from "@/utils/cx";
-import { showToast } from "@/lib/notification-toast/show-toast";
 
 import { SettingsGeneral } from "./settings-general";
 import { SettingsProfile } from "./settings-profile";
@@ -23,7 +22,7 @@ import { SettingsPrivacy, SettingsTerms } from "./settings-legal";
 import { SettingsTools } from "./settings-tools";
 
 /**
- * Figma sources: Board UI → "Settings/Profile" (node 4081:13943) and
+ * Figma sources: the design system → "Settings/Profile" (node 4081:13943) and
  * "Settings/General" (node 4079:13037).
  *
  * The app-wide settings modal, opened from any sidebar's "Settings" item.
@@ -122,11 +121,6 @@ export function SettingsModal({
   const [savedPhase, setSavedPhase] = useState<"hidden" | "shown" | "leaving">("hidden");
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showSavedToast = () => {
-    showToast({
-      title: "Changes saved",
-      description: "Your profile settings were updated.",
-      status: "success",
-    });
     if (savedTimer.current) clearTimeout(savedTimer.current);
     setSavedPhase("shown");
     savedTimer.current = setTimeout(() => {
@@ -304,13 +298,13 @@ export function SettingsModal({
               ) : page === "storage" ? (
                 <SettingsStorage />
               ) : page === "tools" ? (
-                <SettingsTools />
+                <SettingsTools onSaved={showSavedToast} />
               ) : page === "terms" ? (
                 <SettingsTerms />
               ) : page === "privacy" ? (
                 <SettingsPrivacy />
               ) : (
-                <SettingsGeneral />
+                <SettingsGeneral onSaved={showSavedToast} />
               )}
             </div>
             {/* Progressive top fade — eases in once the page is scrolled so

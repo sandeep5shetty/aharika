@@ -31,7 +31,7 @@ import { useDirection } from "@/components/foundations/direction/direction";
  *
  * The trigger's single child must be focusable (react-aria `Button`, or any
  * component built on `useFocusable`).
- * BoardUI opens and begins closing immediately. The tooltip surface itself is
+ * the design system opens and begins closing immediately. The tooltip surface itself is
  * non-interactive, so moving off the trigger never keeps it open and tooltip
  * copy cannot be selected accidentally.
  */

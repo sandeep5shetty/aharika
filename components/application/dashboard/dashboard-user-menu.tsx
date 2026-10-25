@@ -17,7 +17,7 @@ import { ChevronUpDownSmall } from "@/components/foundations/icons/chevrons";
 import { cx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → sidebar account menu (node 3828:3895).
+ * Figma source: the design system → sidebar account menu (node 3828:3895).
  *
  * Dropdown opened from the sidebar's workspace switcher (avatar + name +
  * chevron) at the top. Floats to the right of the sidebar with the same panel

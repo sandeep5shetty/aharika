@@ -25,7 +25,7 @@ export const SOCIAL_PROVIDERS = {
     label: "Google",
     // The system's blue token, not Google's own #4285F4. The two are close
     // enough that showing both in one product reads as a mistake, and the
-    // `colorful` button is a BoardUI control, so it takes the BoardUI blue —
+    // `colorful` button is a design system control, so it takes the design system blue —
     // and with it the primary button's exact gradient. The multi-colour G
     // used by `appearance="white"` is untouched and stays Google's own.
     brand: "var(--color-accent-500)",

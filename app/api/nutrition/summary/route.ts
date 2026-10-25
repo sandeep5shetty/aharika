@@ -1,8 +1,10 @@
 import { auth } from "@/lib/auth";
 import {
   getMealsBetween,
+  getMemorySummaryRecord,
   getUserTimezone,
 } from "@/lib/db/nutrition-queries";
+import { readUsualMealTimes } from "@/lib/nutrition/nudge-timing";
 import {
   compareToGoals,
   endOfDayInTimeZone,
@@ -56,6 +58,7 @@ export async function GET(request: Request) {
 
   const progress = await getProgressSnapshot(userId, "today", timeZone);
   const series = await getRangeDailyTotals(userId, 7, timeZone);
+  const memory = await getMemorySummaryRecord(userId);
   const meals = await getMealsBetween(
     userId,
     startOfDayInTimeZone(now, timeZone),
@@ -69,5 +72,6 @@ export async function GET(request: Request) {
     meals,
     series,
     totals: progress.totals,
+    usualMealTimes: readUsualMealTimes(memory?.summary),
   });
 }

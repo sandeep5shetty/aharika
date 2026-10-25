@@ -44,6 +44,10 @@ import { ChatbotError } from "@/lib/errors";
 import { buildNutritionContextBlock } from "@/lib/nutrition/context";
 import { maybeSummarize } from "@/lib/nutrition/memory";
 import {
+  isMedicalAdviceRequest,
+  MEDICAL_ADVICE_REFUSAL,
+} from "@/lib/nutrition/safety";
+import {
   getUserMessageText,
   isOffTopicUserMessage,
   OFF_TOPIC_REFUSAL,
@@ -230,10 +234,18 @@ export async function POST(request: Request) {
     const latestUserMessage = uiMessages
       .filter((entry) => entry.role === "user")
       .at(-1);
+    const latestUserText =
+      latestUserMessage === undefined
+        ? ""
+        : getUserMessageText(latestUserMessage.parts);
+    const medicalRequest =
+      !isToolApprovalFlow && isMedicalAdviceRequest(latestUserText);
     const offTopicRequest =
       !isToolApprovalFlow &&
+      !medicalRequest &&
       latestUserMessage !== undefined &&
-      isOffTopicUserMessage(getUserMessageText(latestUserMessage.parts));
+      isOffTopicUserMessage(latestUserText);
+    const blockedRequest = medicalRequest || offTopicRequest;
 
     const stream = createUIMessageStream({
       execute: async ({ writer: dataStream }) => {
@@ -243,16 +255,18 @@ export async function POST(request: Request) {
           supportsTools,
         });
 
-        const instructions = offTopicRequest
-          ? `${coachInstructions}\n\nOff-topic request detected. Reply ONLY with the following text. Do not include code blocks or answer the user's off-topic question:\n\n${OFF_TOPIC_REFUSAL}`
-          : coachInstructions;
+        const instructions = medicalRequest
+          ? `${coachInstructions}\n\nMedical request detected. Reply ONLY with the following text. Do not diagnose, prescribe, or personalize a clinical diet:\n\n${MEDICAL_ADVICE_REFUSAL}`
+          : offTopicRequest
+            ? `${coachInstructions}\n\nOff-topic request detected. Reply ONLY with the following text. Do not include code blocks or answer the user's off-topic question:\n\n${OFF_TOPIC_REFUSAL}`
+            : coachInstructions;
 
         const result = streamText({
           model: getLanguageModel(chatModel),
           messages: modelMessages,
           instructions,
           activeTools:
-            supportsTools && !offTopicRequest
+            supportsTools && !blockedRequest
               ? (activeNutritionToolNames as (keyof typeof nutritionTools)[])
               : [],
           stopWhen: isStepCount(8),
@@ -260,7 +274,7 @@ export async function POST(request: Request) {
             functionId: "stream-text",
             isEnabled: isProductionEnvironment,
           },
-          ...(offTopicRequest ? {} : { tools: nutritionTools }),
+          ...(blockedRequest ? {} : { tools: nutritionTools }),
         });
 
         dataStream.merge(

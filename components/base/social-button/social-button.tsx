@@ -110,13 +110,13 @@ const styles = sortCx({
   appearance: {
     // The same recipe as `bg-button-primary`: a 180deg gradient from the
     // brand colour into a darker stop, with the system's own button shadow.
-    // A flat fill read as a foreign control next to BoardUI's own buttons.
+    // A flat fill read as a foreign control next to the design system's own buttons.
     // The gradient itself is set inline, since it is per-brand.
     colorful: "text-white shadow-xs",
     black:
       "bg-neutral-950 text-white shadow-xs hover:bg-neutral-800 active:bg-neutral-900",
     // Matches the system's secondary button, so it sits in a form beside the
-    // rest of BoardUI without looking like a different family.
+    // rest of the design system without looking like a different family.
     white: [
       "bg-background-primary-default text-text-primary",
       "border border-border-button-default shadow-xs",

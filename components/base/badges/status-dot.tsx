@@ -2,7 +2,7 @@ import type { HTMLAttributes, Ref } from "react";
 import { cx, sortCx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → dashboard 1 status dropdown dots (node 3731:3266).
+ * Figma source: the design system → dashboard 1 status dropdown dots (node 3731:3266).
  *
  * 12×12 status indicator: a 6px solid dot centered on a tinted halo.
  * Color pairs from Figma variables:

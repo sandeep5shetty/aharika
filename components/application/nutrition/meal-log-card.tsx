@@ -231,7 +231,13 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
             >
               Larger (+25%)
             </Button>
-            <Button disabled={busy} variant="secondary" size="small" onClick={handleDelete}>
+            <Button
+              disabled={busy}
+              variant="secondary"
+              size="small"
+              className="text-text-error-primary"
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </div>

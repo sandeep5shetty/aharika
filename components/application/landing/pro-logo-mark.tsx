@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { cx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → "boardui_logo_pro" (node 4292:14213).
+ * Figma source: the design system → "boardui_logo_pro" (node 4292:14213).
  *
  * The Pro badge drawn in the browser rather than exported as a PNG, so the
  * brushed-metal face stays crisp at any density and the mark itself is vector.

@@ -23,7 +23,7 @@ import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → dashboard 1 → Frame 20 (node 3731:3160) for the
+ * Figma source: the design system → dashboard 1 → Frame 20 (node 3731:3160) for the
  * plain cards; the footer variant follows the same inner-tile recipe as the
  * recent hires card.
  *

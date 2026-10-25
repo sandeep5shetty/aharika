@@ -9,7 +9,7 @@ import { cx, sortCx } from "@/utils/cx";
 import { directionalIconClass } from "@/utils/directional-icon";
 
 /**
- * Figma source: Board UI → Buttons (node 3656:13819).
+ * Figma source: the design system → Buttons (node 3656:13819).
  *
  * Variant matrix from Figma:
  *   Type     = Primary | Secondary | Ghost | Danger

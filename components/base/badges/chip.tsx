@@ -2,7 +2,7 @@ import type { HTMLAttributes, Ref } from "react";
 import { cx, sortCx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → dashboard 1 "Chip" layers (status chips, delta
+ * Figma source: the design system → dashboard 1 "Chip" layers (status chips, delta
  * chips, price chips, role chips — e.g. nodes 3731:3273, 3731:3094, 3731:3280,
  * 3731:3055).
  *

@@ -3,6 +3,7 @@ import {
   desc,
   eq,
   gte,
+  isNotNull,
   lte,
   sql,
 } from "drizzle-orm";
@@ -14,8 +15,10 @@ import {
   goal,
   meal,
   nudge,
+  user,
   userMemorySummary,
   userPreference,
+  whatsappReminder,
   type FoodItem,
   type Meal,
 } from "./schema";
@@ -256,6 +259,16 @@ export async function upsertUserTimezone(userId: string, timezone: string) {
   await upsertUserPreferenceFields(userId, { timezone });
 }
 
+export async function isCoachMemoryEnabled(userId: string) {
+  const row = await getUserPreferenceRow(userId);
+  return row?.coachMemoryEnabled !== false;
+}
+
+export async function areMealNudgesEnabled(userId: string) {
+  const row = await getUserPreferenceRow(userId);
+  return row?.mealNudgesEnabled !== false;
+}
+
 export async function upsertUserPreferenceFields(
   userId: string,
   patch: {
@@ -265,6 +278,18 @@ export async function upsertUserPreferenceFields(
     weightKg?: number | null;
     heightCm?: number | null;
     activity?: string | null;
+    allergies?: string[];
+    allergyNote?: string | null;
+    coachMemoryEnabled?: boolean;
+    dietPattern?: string | null;
+    mealNudgesEnabled?: boolean;
+    whatsappPhone?: string | null;
+    whatsappRemindersEnabled?: boolean;
+    whatsappScheduledEnabled?: boolean;
+    whatsappSmartEnabled?: boolean;
+    whatsappBreakfastTime?: string | null;
+    whatsappLunchTime?: string | null;
+    whatsappDinnerTime?: string | null;
   }
 ) {
   const existing = await getUserPreferenceRow(userId);
@@ -280,6 +305,74 @@ export async function upsertUserPreferenceFields(
     timezone: patch.timezone ?? "Asia/Kolkata",
     ...patch,
   });
+}
+
+export async function listWhatsappReminderSubscribers() {
+  return db
+    .select({
+      email: user.email,
+      name: user.name,
+      timezone: userPreference.timezone,
+      userId: userPreference.userId,
+      whatsappBreakfastTime: userPreference.whatsappBreakfastTime,
+      whatsappDinnerTime: userPreference.whatsappDinnerTime,
+      whatsappLunchTime: userPreference.whatsappLunchTime,
+      whatsappPhone: userPreference.whatsappPhone,
+      whatsappRemindersEnabled: userPreference.whatsappRemindersEnabled,
+      whatsappScheduledEnabled: userPreference.whatsappScheduledEnabled,
+      whatsappSmartEnabled: userPreference.whatsappSmartEnabled,
+    })
+    .from(userPreference)
+    .innerJoin(user, eq(user.id, userPreference.userId))
+    .where(
+      and(
+        eq(userPreference.whatsappRemindersEnabled, true),
+        isNotNull(userPreference.whatsappPhone),
+      ),
+    );
+}
+
+export async function listWhatsappReminders(userId: string, date: string) {
+  return db
+    .select()
+    .from(whatsappReminder)
+    .where(and(eq(whatsappReminder.userId, userId), eq(whatsappReminder.date, date)));
+}
+
+export async function claimWhatsappReminder(input: {
+  userId: string;
+  date: string;
+  mealType: "breakfast" | "lunch" | "dinner";
+  kind: "scheduled" | "smart";
+}) {
+  try {
+    await db.insert(whatsappReminder).values(input);
+    return true;
+  } catch (error) {
+    const code =
+      (error as { code?: string; cause?: { code?: string } }).code ??
+      (error as { cause?: { code?: string } }).cause?.code;
+    if (code === "23505") return false;
+    throw error;
+  }
+}
+
+export async function releaseWhatsappReminder(input: {
+  userId: string;
+  date: string;
+  mealType: "breakfast" | "lunch" | "dinner";
+  kind: "scheduled" | "smart";
+}) {
+  await db
+    .delete(whatsappReminder)
+    .where(
+      and(
+        eq(whatsappReminder.userId, input.userId),
+        eq(whatsappReminder.date, input.date),
+        eq(whatsappReminder.mealType, input.mealType),
+        eq(whatsappReminder.kind, input.kind),
+      ),
+    );
 }
 
 export async function getMemorySummaryRecord(userId: string) {
@@ -363,6 +456,59 @@ export async function recordNudge(
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function getNudgeForSlot(
+  userId: string,
+  mealType: "breakfast" | "lunch" | "dinner" | "snack",
+  date: string,
+) {
+  const [row] = await db
+    .select()
+    .from(nudge)
+    .where(
+      and(
+        eq(nudge.userId, userId),
+        eq(nudge.mealType, mealType),
+        eq(nudge.date, date),
+      ),
+    );
+  return row;
+}
+
+export async function dismissNudge(
+  userId: string,
+  mealType: "breakfast" | "lunch" | "dinner" | "snack",
+  date: string,
+) {
+  const dismissedAt = new Date();
+  const existing = await getNudgeForSlot(userId, mealType, date);
+  if (existing) {
+    await db
+      .update(nudge)
+      .set({ dismissedAt })
+      .where(eq(nudge.id, existing.id));
+    return;
+  }
+  try {
+    await db.insert(nudge).values({
+      date,
+      dismissedAt,
+      mealType,
+      userId,
+    });
+  } catch {
+    await db
+      .update(nudge)
+      .set({ dismissedAt })
+      .where(
+        and(
+          eq(nudge.userId, userId),
+          eq(nudge.mealType, mealType),
+          eq(nudge.date, date),
+        ),
+      );
   }
 }
 

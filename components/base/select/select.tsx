@@ -27,7 +27,7 @@ import { cx } from "@/utils/cx";
 import { useDismissOnOutsidePress, useTriggerToggle } from "@/utils/use-dismiss-on-outside-press";
 
 /**
- * Figma source: Board UI → dashboard 1 dropdown triggers ("All prices" filter
+ * Figma source: the design system → dashboard 1 dropdown triggers ("All prices" filter
  * node 3731:3208, table status dropdown node 3731:3264).
  *
  * Select with a button trigger styled 1:1 with Figma:
@@ -36,7 +36,7 @@ import { useDismissOnOutsidePress, useTriggerToggle } from "@/utils/use-dismiss-
  *            Body 1/Medium text color/neutral/950,
  *            16px chevron (custom stroke glyph) in text/secondary
  *
- * The open popover/listbox shares the BoardUI menu recipe with Dropdown:
+ * The open popover/listbox shares the design system menu recipe with Dropdown:
  * radius/2xl panel, p 10, shadow/dropdown, 150ms fade/scale/blur motion,
  * and radius/2lg rows with the same hover/selected surface.
  *

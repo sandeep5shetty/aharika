@@ -43,7 +43,7 @@ type SliderBaseInternalProps<T extends SliderValue> = SliderBaseProps<T> & {
  * Shared single and multi-thumb slider presentation.
  *
  * React Aria owns the value model, drag behavior, hidden range inputs,
- * keyboard controls, RTL handling, and collision rules. BoardUI owns the
+ * keyboard controls, RTL handling, and collision rules. the design system owns the
  * visual track, selected range, thumbs, and exact-value bubbles.
  */
 function SliderBase<T extends SliderValue>({

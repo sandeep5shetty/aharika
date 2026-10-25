@@ -12,7 +12,7 @@ import {
 import { cx } from "@/utils/cx";
 
 /**
- * Figma sources: Board UI → "Upload file" (node 4105:25269),
+ * Figma sources: the design system → "Upload file" (node 4105:25269),
  * "Upload in progress" (node 4107:27192), and the complete state
  * (node 4107:30456).
  *

@@ -3,7 +3,7 @@
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
 import { useChat } from "@ai-sdk/react";
-import { RiCloseLine, RiMenuLine } from "@remixicon/react";
+import { RiChat3Line, RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 
 import { Button } from "@/components/base/buttons/button";
@@ -120,6 +120,7 @@ export function AgentChat({
   const [probe, setProbe] = useState<Probe>({ status: "checking", provider: null, label: null, model: null });
   const [input, setInput] = useState("");
   const [navOpen, setNavOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPage, setSettingsPage] = useState<SettingsPage>("general");
@@ -591,6 +592,40 @@ export function AgentChat({
 
       {/* Below lg the sidebar rides in as an overlay drawer. The Pro template
           pushes the workspace across instead; this is the plain version. */}
+      {historyOpen && (
+        <div className={cx(contained ? "absolute" : "fixed", "inset-0 z-50 flex justify-end xl:hidden")}>
+          <button
+            type="button"
+            aria-label="Close chat history"
+            onClick={() => setHistoryOpen(false)}
+            className="absolute inset-0 cursor-pointer bg-black/40"
+          />
+          <div className="relative flex h-full p-3">
+            <AgentChatHistory
+              threads={allThreads}
+              activeId={activeId}
+              onSelect={(id) => {
+                selectThread(id);
+                setHistoryOpen(false);
+              }}
+              onNewChat={() => {
+                startNewChat();
+                setHistoryOpen(false);
+              }}
+              disableNewChat={guestHasChat}
+              onNewChatBlocked={() => promptGuestUpgrade("new_chat")}
+              onRename={renameThread}
+              onToggleUnread={toggleUnread}
+              onDelete={deleteThread}
+              onOpenFeedback={() => setFeedbackOpen(true)}
+              onOpenSettings={openSettings}
+              disabled={busy}
+              className="flex w-[min(260px,85vw)]"
+            />
+          </div>
+        </div>
+      )}
+
       {navOpen && (
         <div className={cx(contained ? "absolute" : "fixed", "inset-0 z-50 flex lg:hidden")}>
           <button
@@ -641,7 +676,10 @@ export function AgentChat({
                 icon={navOpen ? RiCloseLine : RiMenuLine}
                 size="small"
                 aria-label="Open navigation"
-                onClick={() => setNavOpen((open) => !open)}
+                onClick={() => {
+                  setHistoryOpen(false);
+                  setNavOpen((open) => !open);
+                }}
                 className="lg:hidden"
               />
               <AgentChatHeaderTitle
@@ -651,10 +689,22 @@ export function AgentChat({
               />
 
               <div className="ms-auto flex shrink-0 items-center gap-1">
-                <NotificationBell />
+                <NotificationBell className="max-xl:size-8 [&_svg]:max-xl:size-4" />
+                <IconButton
+                  icon={historyOpen ? RiCloseLine : RiChat3Line}
+                  size="small"
+                  aria-label={historyOpen ? "Close chat history" : "Open chat history"}
+                  aria-expanded={historyOpen}
+                  onClick={() => {
+                    setNavOpen(false);
+                    setHistoryOpen((open) => !open);
+                  }}
+                  className="xl:hidden"
+                />
                 <AgentChatActions
                   onDelete={() => deleteThread(activeId)}
                   disabled={!hasMounted || messages.length === 0}
+                  className="hidden xl:flex"
                 />
               </div>
             </header>

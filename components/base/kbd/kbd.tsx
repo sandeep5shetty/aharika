@@ -2,7 +2,7 @@ import type { HTMLAttributes, Ref } from "react";
 import { cx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → dashboard 1 quick-search shortcut (node 3731:2955).
+ * Figma source: the design system → dashboard 1 quick-search shortcut (node 3731:2955).
  *
  * Keyboard shortcut hint: 12/16 semibold on a fully-rounded neutral pill.
  *   - semantic neutral background and foreground for theme-safe contrast

@@ -2,7 +2,7 @@ import type { HTMLAttributes, Ref } from "react";
 import { cx, sortCx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → dashboard 1 sidebar counters (nodes 3731:2964,
+ * Figma source: the design system → dashboard 1 sidebar counters (nodes 3731:2964,
  * 3731:2982).
  *
  * Small numeric counter pill (nav item counts, unread totals).

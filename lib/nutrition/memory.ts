@@ -6,8 +6,11 @@ import { getRecentUserMessagesForUser } from "@/lib/db/queries";
 import {
   getMemorySummaryRecord,
   getRecentMealsForSummary,
+  isCoachMemoryEnabled,
   upsertMemorySummary,
 } from "@/lib/db/nutrition-queries";
+import { toStoredSummary } from "@/lib/nutrition/memory-summary";
+import { isClinicalMemoryNote } from "@/lib/nutrition/safety";
 import { getUserMessageText } from "@/lib/nutrition/scope";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
@@ -29,32 +32,14 @@ const summarySchema = z.object({
   notes: z.array(z.string()),
 });
 
-type SummaryPayload = z.infer<typeof summarySchema>;
-
-function toStoredSummary(object: SummaryPayload, priorNotes: string[]) {
-  const {
-    mealTimeBreakfast,
-    mealTimeLunch,
-    mealTimeDinner,
-    notes: newNotes,
-    ...rest
-  } = object;
-
-  return {
-    ...rest,
-    usualMealTimes: {
-      breakfast: mealTimeBreakfast,
-      lunch: mealTimeLunch,
-      dinner: mealTimeDinner,
-    },
-    notes: [...priorNotes, ...newNotes],
-  };
-}
-
 const SUMMARY_MEAL_THRESHOLD = 5;
 const SUMMARY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export async function maybeSummarize(userId: string) {
+  if (!(await isCoachMemoryEnabled(userId))) {
+    return;
+  }
+
   const existing = await getMemorySummaryRecord(userId);
   const mealsSince = existing?.mealsSinceSummary ?? 0;
   const generatedAt = existing?.generatedAt?.getTime() ?? 0;
@@ -74,8 +59,9 @@ export async function maybeSummarize(userId: string) {
     return;
   }
 
-  const priorNotes =
-    (existing?.summary as { notes?: string[] } | undefined)?.notes ?? [];
+  const priorNotes = (
+    (existing?.summary as { notes?: string[] } | undefined)?.notes ?? []
+  ).filter((note) => !isClinicalMemoryNote(note));
 
   const mealDigest = meals
     .slice(0, 40)
@@ -103,7 +89,8 @@ export async function maybeSummarize(userId: string) {
     schema: summarySchema,
     prompt: `Summarize eating patterns for a nutrition coach memory store.
 Use logged meals as primary evidence; use recent user chat messages for stated habits, preferences, and meal times they mentioned but may not have logged yet.
-Keep notes concise. Preserve user-stated habits in notes.
+Keep notes concise. Preserve user-stated food habits in notes.
+Do not record diagnoses, medications, allergies, or other medical conditions.
 Prior notes: ${priorNotes.join("; ") || "none"}
 
 Meals:
@@ -113,8 +100,9 @@ Recent user chat messages (newest last):
 ${chatDigest || "(none)"}`,
   });
 
-  await upsertMemorySummary(userId, {
-    ...object,
-    notes: [...priorNotes, ...(object.notes ?? [])],
-  });
+  const safeNotes = (object.notes ?? []).filter((note) => !isClinicalMemoryNote(note));
+  await upsertMemorySummary(
+    userId,
+    toStoredSummary({ ...object, notes: safeNotes }, priorNotes),
+  );
 }

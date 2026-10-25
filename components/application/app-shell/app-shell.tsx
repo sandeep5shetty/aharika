@@ -8,7 +8,6 @@ import {
   RiCloseLine,
   RiDashboardLine,
   RiFilter3Fill,
-  RiLayoutGridLine,
   RiLoginBoxLine,
   RiPieChart2Line,
   RiMenuLine,
@@ -35,22 +34,11 @@ import { cx } from "@/utils/cx";
  * and the chat shares its navigation, so the sidebar only ever links to pages
  * the app actually has.
  *
- * On boardui.com the starter lives under /templates/chat-starter; in a
- * deployed copy it is the root. The base is read off the URL rather than
- * configured, so the same files run in both places untouched.
+ * The base is read off the URL so preview and installed copies share these files.
  */
 export const STARTER_SITE_PREFIX = "/templates/chat-starter";
 
-// Re-exported so the catalogue ships with the shell; the starter's pages are
-// copied into the public repo by path and can only import what a registry
-// item carries.
-export {
-  CatalogTierFilter,
-  ComponentsCatalog,
-  type CatalogTier,
-} from "@/components/application/app-shell/components-catalog";
-
-/** "" in a deployed starter, the site prefix on boardui.com. */
+/** "" when the app is served from the site root. */
 export function useStarterBase(): string {
   const pathname = usePathname() ?? "";
   // Preserve an optional language prefix on the hosted preview. Installed
@@ -62,7 +50,6 @@ export function starterNav(base: string, signedInRegular = false): DashboardNavI
   const items: DashboardNavItem[] = [
     { key: "chat", label: "Chat", icon: RiChatAiLine, href: `${base}${CHAT_PATH}` },
     { key: "dashboard", label: "Dashboard", icon: RiDashboardLine, href: `${base}/dashboard` },
-    { key: "components", label: "Components and Blocks", icon: RiLayoutGridLine, href: `${base}/components` },
   ];
 
   if (signedInRegular) {
@@ -97,17 +84,11 @@ export function useStarterSelected(): string {
   const base = useStarterBase();
   const rest = pathname.slice(base.length);
   if (rest.startsWith("/dashboard")) return "dashboard";
-  if (rest.startsWith("/components")) return "components";
   if (rest.startsWith(CHAT_PATH)) return "chat";
   return "";
 }
 
-/**
- * The page standard every BoardUI template follows, free or Pro: content sits
- * directly on the page background inside a 1300px column, so cards and tables
- * carry their own surfaces; above it the page heading.
- * Pages pass what differs and get the rest.
- */
+/** Sidebar, a phone drawer, and a titled content column. */
 export function AppShell({
   title,
   heading = title,

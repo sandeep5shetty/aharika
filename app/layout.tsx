@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
-import { BoardUIThemeScript } from "@/components/foundations/theme/boardui-theme-script";
+import { ThemeInitScript } from "@/components/foundations/theme/boardui-theme-script";
 import { DirectionProvider } from "@/components/foundations/direction/direction";
 import { GuestUpgradeProvider } from "@/components/application/auth/guest-upgrade-provider";
 import { LogOutConfirmProvider } from "@/components/application/auth/log-out-confirm-provider";
@@ -51,7 +51,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <BoardUIThemeScript />
+        <ThemeInitScript />
       </head>
       <body className="flex min-h-full flex-col font-sans">
         <DirectionProvider locale="en-US">

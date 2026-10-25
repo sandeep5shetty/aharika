@@ -45,12 +45,14 @@ export function NotificationsProvider({
   children,
   notifications = STARTER_NOTIFICATIONS,
   onAction,
+  onItemRead,
   tabLabels,
   emptyMessage,
 }: {
   children: ReactNode;
   notifications?: NotificationCenterItem[];
   onAction?: (notificationId: string, actionId: string) => void;
+  onItemRead?: (notificationId: string) => void;
   tabLabels?: Partial<Record<NotificationCenterTab, string>>;
   emptyMessage?: string;
 }) {
@@ -58,12 +60,28 @@ export function NotificationsProvider({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
 
   const setTriggerRef = useCallback((node: HTMLButtonElement | null) => {
     triggerRef.current = node;
   }, []);
 
-  const unreadCount = notifications.filter((item) => item.unread).length;
+  const unreadCount = notifications.filter(
+    (item) => item.unread && !readIds.has(item.id),
+  ).length;
+
+  const markRead = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return;
+      setReadIds((current) => {
+        const next = new Set(current);
+        for (const id of ids) next.add(id);
+        return next;
+      });
+      for (const id of ids) onItemRead?.(id);
+    },
+    [onItemRead],
+  );
 
   const handleAction = useCallback(
     (notificationId: string, actionId: string) => {
@@ -108,6 +126,8 @@ export function NotificationsProvider({
           <NotificationCenter
             notifications={notifications}
             onAction={handleAction}
+            readIds={readIds}
+            onMarkRead={markRead}
             tabLabels={tabLabels}
             emptyMessage={emptyMessage}
           />
@@ -118,7 +138,7 @@ export function NotificationsProvider({
 }
 
 /** Header bell: registers as the popover anchor and toggles the shared inbox. */
-export function NotificationBell() {
+export function NotificationBell({ className }: { className?: string } = {}) {
   const localize = useTemplateCopy();
   const ctx = useNotifications();
   const fallbackTriggerRef = useRef<HTMLButtonElement>(null);
@@ -145,6 +165,7 @@ export function NotificationBell() {
         }}
         icon={RiNotificationLine}
         size="medium"
+        className={className}
         aria-label="Notifications"
         aria-expanded={isOpen}
         aria-haspopup="dialog"

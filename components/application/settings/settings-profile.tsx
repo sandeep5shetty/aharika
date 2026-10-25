@@ -2,15 +2,23 @@
 
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
-import { useEffect, useRef, useState, type ComponentProps, type Key } from "react";
-import { RiLogoutCircleLine, RiMailLine, RiUserLine } from "@remixicon/react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { RiMailLine, RiUserLine } from "@remixicon/react";
 import { useSession } from "next-auth/react";
-import { useLogOutConfirm } from "@/components/application/auth/log-out-confirm-provider";
-import { Button, ButtonLink } from "@/components/base/buttons/button";
+import { ButtonLink } from "@/components/base/buttons/button";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { Switch } from "@/components/base/switch/switch";
 import { guestRegex, withBasePath } from "@/lib/constants";
+import {
+  ALLERGY_OPTIONS,
+  DIET_PATTERNS,
+  parseAllergies,
+  parseAllergyNote,
+  parseDietPattern,
+  type AllergyOption,
+  type DietPattern,
+} from "@/lib/nutrition/diet-preferences";
 import { cx } from "@/utils/cx";
 import {
   SettingsCard,
@@ -21,18 +29,19 @@ import {
 import { SETTINGS_CONTROL_WIDTH, SETTINGS_SELECT_TRIGGER } from "./settings-control-width";
 import { SettingsDailyGoals } from "./settings-daily-goals";
 
-const TIMEZONE_OPTIONS = [
-  { id: "Asia/Kolkata", label: "India (IST)" },
-  { id: "Asia/Dubai", label: "Gulf (GST)" },
-  { id: "Asia/Singapore", label: "Singapore" },
-  { id: "Europe/London", label: "United Kingdom" },
-  { id: "America/New_York", label: "US Eastern" },
-  { id: "America/Los_Angeles", label: "US Pacific" },
-  { id: "Australia/Sydney", label: "Australia (Sydney)" },
-] as const;
+const DIET_LABELS: Record<DietPattern, string> = {
+  vegetarian: "Vegetarian",
+  eggetarian: "Eggetarian",
+  "non-vegetarian": "Non-vegetarian",
+  vegan: "Vegan",
+};
 
-const MEAL_NUDGES_KEY = "aharika-meal-nudges";
-const COACH_MEMORY_KEY = "aharika-coach-memory";
+const ALLERGY_LABELS: Record<AllergyOption, string> = {
+  milk: "Milk",
+  peanut: "Peanut",
+  wheat: "Wheat",
+  egg: "Egg",
+};
 
 function SavableInput({
   initialValue,
@@ -85,7 +94,6 @@ function SavableInput({
 export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
   const localize = useTemplateCopy();
   const { data: session, update } = useSession();
-  const { openLogOutConfirm } = useLogOutConfirm();
 
   const isGuest =
     session?.user?.type === "guest" ||
@@ -97,21 +105,10 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
     session?.user?.name?.trim() ||
     (email && !isGuest && email.includes("@") ? email.split("@")[0] : "");
 
-  const [timezone, setTimezone] = useState("Asia/Kolkata");
-  const [mealNudges, setMealNudges] = useState(true);
-  const [coachMemory, setCoachMemory] = useState(true);
+  const [dietPattern, setDietPattern] = useState<DietPattern | null>(null);
+  const [allergies, setAllergies] = useState<AllergyOption[]>([]);
+  const [allergyNote, setAllergyNote] = useState("");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const storedNudges = window.localStorage.getItem(MEAL_NUDGES_KEY);
-      if (storedNudges !== null) setMealNudges(storedNudges === "true");
-      const storedMemory = window.localStorage.getItem(COACH_MEMORY_KEY);
-      if (storedMemory !== null) setCoachMemory(storedMemory === "true");
-    } catch {
-      // ignore
-    }
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,9 +116,15 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
       try {
         const response = await fetch(withBasePath("/api/nutrition/preferences"));
         if (!response.ok) return;
-        const data = (await response.json()) as { timezone?: string };
-        if (!cancelled && data.timezone) {
-          setTimezone(data.timezone);
+        const data = (await response.json()) as {
+          allergies?: unknown;
+          allergyNote?: string | null;
+          dietPattern?: unknown;
+        };
+        if (!cancelled) {
+          setDietPattern(parseDietPattern(data.dietPattern));
+          setAllergies(parseAllergies(data.allergies));
+          setAllergyNote(data.allergyNote ?? "");
         }
       } finally {
         if (!cancelled) setPrefsLoaded(true);
@@ -131,22 +134,6 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
       cancelled = true;
     };
   }, []);
-
-  const saveTimezone = async (key: Key | null) => {
-    if (key === null) return;
-    const next = String(key);
-    setTimezone(next);
-    try {
-      await fetch(withBasePath("/api/nutrition/preferences"), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timezone: next }),
-      });
-      onSaved?.();
-    } catch {
-      // keep UI value; toast not required
-    }
-  };
 
   const saveDisplayName = async (name: string) => {
     const response = await fetch(withBasePath("/api/user/profile"), {
@@ -159,24 +146,22 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
     onSaved?.();
   };
 
-  const onMealNudgesChange = (enabled: boolean) => {
-    setMealNudges(enabled);
+  const saveDietFields = async (body: {
+    allergies?: AllergyOption[];
+    allergyNote?: string | null;
+    dietPattern?: DietPattern | null;
+  }) => {
+    if (isGuest) return;
     try {
-      window.localStorage.setItem(MEAL_NUDGES_KEY, String(enabled));
+      await fetch(withBasePath("/api/nutrition/preferences"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      onSaved?.();
     } catch {
-      // ignore
+      // Keep the selected values on screen if the request fails.
     }
-    onSaved?.();
-  };
-
-  const onCoachMemoryChange = (enabled: boolean) => {
-    setCoachMemory(enabled);
-    try {
-      window.localStorage.setItem(COACH_MEMORY_KEY, String(enabled));
-    } catch {
-      // ignore
-    }
-    onSaved?.();
   };
 
   return localize((
@@ -213,45 +198,89 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <SettingsSectionLabel>Coaching & diary</SettingsSectionLabel>
+        <SettingsSectionLabel>Diet</SettingsSectionLabel>
         <SettingsCard>
           <SettingsRow
-            label="Timezone"
-            description="Meal days and gentle reminders use this clock"
+            label="Diet pattern"
+            description={
+              isGuest
+                ? "Create an account to save a diet pattern"
+                : "Leave this empty when you have no restriction"
+            }
           >
             <Select
-              aria-label="Timezone"
-              selectedKey={timezone}
-              onSelectionChange={saveTimezone}
-              isDisabled={!prefsLoaded}
+              aria-label="Diet pattern"
+              selectedKey={dietPattern ?? "none"}
+              onSelectionChange={(key) => {
+                if (isGuest || key === null) return;
+                const next = key === "none" ? null : parseDietPattern(String(key));
+                setDietPattern(next);
+                void saveDietFields({ dietPattern: next });
+              }}
+              isDisabled={!prefsLoaded || isGuest}
               className={SETTINGS_CONTROL_WIDTH}
               triggerClassName={SETTINGS_SELECT_TRIGGER}
             >
-              {TIMEZONE_OPTIONS.map((zone) => (
-                <SelectItem key={zone.id} id={zone.id} textValue={zone.label}>
-                  {zone.label}
+              <SelectItem id="none" textValue="No restriction">
+                No restriction
+              </SelectItem>
+              {DIET_PATTERNS.map((pattern) => (
+                <SelectItem key={pattern} id={pattern} textValue={DIET_LABELS[pattern]}>
+                  {DIET_LABELS[pattern]}
                 </SelectItem>
               ))}
             </Select>
           </SettingsRow>
           <SettingsRow
-            label="Meal reminders"
-            description="In-chat nudges when you miss a usual breakfast, lunch, or dinner"
+            label="Allergies"
+            description={
+              isGuest
+                ? "Create an account to save foods you avoid"
+                : "Aharika will avoid suggesting these foods"
+            }
+            className="sm:grid sm:grid-cols-[minmax(0,60%)_minmax(0,40%)] sm:items-center sm:gap-0"
+            controlClassName="sm:w-full"
+            labelClassName="sm:w-full"
           >
-            <Switch
-              aria-label="Meal reminders"
-              isSelected={mealNudges}
-              onChange={onMealNudgesChange}
-            />
+            <div className="grid w-full grid-cols-2 gap-x-2 gap-y-1">
+              {ALLERGY_OPTIONS.map((option) => (
+                <Checkbox
+                  key={option}
+                  size="sm"
+                  className="min-h-8 whitespace-nowrap rounded-lg px-1 py-0.5"
+                  isSelected={allergies.includes(option)}
+                  isDisabled={!prefsLoaded || isGuest}
+                  onChange={(selected) => {
+                    const next = selected
+                      ? [...allergies, option]
+                      : allergies.filter((item) => item !== option);
+                    setAllergies(next);
+                    void saveDietFields({ allergies: next });
+                  }}
+                >
+                  {ALLERGY_LABELS[option]}
+                </Checkbox>
+              ))}
+            </div>
           </SettingsRow>
           <SettingsRow
-            label="Coach memory"
-            description="Recent meals and habits personalize your advice"
+            label="Other foods to avoid"
+            description={isGuest ? "Create an account to save a note" : "Optional, up to 80 characters"}
           >
-            <Switch
-              aria-label="Coach memory"
-              isSelected={coachMemory}
-              onChange={onCoachMemoryChange}
+            <Input
+              aria-label="Other foods to avoid"
+              size="small"
+              maxLength={80}
+              value={allergyNote}
+              isDisabled={!prefsLoaded || isGuest}
+              placeholder="For example, mushroom"
+              onChange={setAllergyNote}
+              onBlur={() => {
+                const next = parseAllergyNote(allergyNote);
+                setAllergyNote(next ?? "");
+                void saveDietFields({ allergyNote: next });
+              }}
+              className={SETTINGS_CONTROL_WIDTH}
             />
           </SettingsRow>
         </SettingsCard>
@@ -278,22 +307,6 @@ export function SettingsProfile({ onSaved }: { onSaved?: () => void } = {}) {
         ) : (
           <SettingsDailyGoals variant="profile" onSaved={onSaved} />
         )}
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        <SettingsSectionLabel>Account actions</SettingsSectionLabel>
-        <SettingsCard>
-          <SettingsRow label="Sign out">
-            <Button
-              variant="secondary"
-              size="small"
-              leadingIcon={RiLogoutCircleLine}
-              onClick={openLogOutConfirm}
-            >
-              Sign out
-            </Button>
-          </SettingsRow>
-        </SettingsCard>
       </div>
     </div>
   ));

@@ -22,7 +22,7 @@ import { HintText } from "./hint-text";
 import { cx, sortCx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → Input (node 3665:1849).
+ * Figma source: the design system → Input (node 3665:1849).
  *
  * Architecture (mirrors the Untitled UI / React Aria pattern):
  *
@@ -117,6 +117,8 @@ export interface InputBaseProps extends Omit<AriaInputProps, "size" | "className
   trailingIcon?: IconComponent;
   /** Custom element rendered in the leading slot (Phone basic uses this). */
   leadingAddon?: ReactNode;
+  /** Custom element rendered in the trailing slot, such as a show-password button. */
+  trailingAddon?: ReactNode;
   /** Class for the field shell. */
   fieldClassName?: string;
   /** Ref to the <input> element. */
@@ -166,6 +168,7 @@ export function InputBase({
   leadingIcon: Leading,
   trailingIcon: Trailing,
   leadingAddon,
+  trailingAddon,
   fieldClassName,
   className,
   ref,
@@ -221,9 +224,9 @@ export function InputBase({
             className={cx(inputStyles.input, direction === "rtl" ? "pr-1 text-right" : "pl-1 text-left", ctx.inputClassName, className)}
           />
         </div>
-        {Trailing ? (
+        {trailingAddon ?? (Trailing ? (
           <Trailing className={inputStyles.icon} aria-hidden />
-        ) : null}
+        ) : null)}
       </div>
     </AriaGroup>
   );
@@ -242,6 +245,7 @@ export interface InputProps
       | "leadingIcon"
       | "trailingIcon"
       | "leadingAddon"
+      | "trailingAddon"
       | "fieldClassName"
       | "groupRef"
       | "ref"
@@ -265,6 +269,7 @@ export function Input({
   leadingIcon,
   trailingIcon,
   leadingAddon,
+  trailingAddon,
   fieldClassName,
   ref,
   groupRef,
@@ -301,6 +306,7 @@ export function Input({
             leadingIcon={leadingIcon}
             trailingIcon={trailingIcon}
             leadingAddon={leadingAddon}
+            trailingAddon={trailingAddon}
             fieldClassName={fieldClassName}
           />
           {hint && <HintText isInvalid={isInvalid}>{hint}</HintText>}

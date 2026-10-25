@@ -4,7 +4,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { FeralJellyBlob } from "@/components/foundations/feral-blob/feral-jelly-blob";
 import { jellyFormCompanionProps } from "@/components/foundations/feral-blob/jelly-form-companion";
-import { RiMailCheckLine } from "@remixicon/react";
+import { RiEyeLine, RiEyeOffLine, RiMailCheckLine } from "@remixicon/react";
 import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Divider } from "@/components/base/divider/divider";
@@ -86,7 +86,7 @@ export interface AuthCardProps {
   /**
    * Mark above the title — a wordmark, an app icon, anything. Deliberately a
    * node rather than a src, so the card stays brand-agnostic and an installed
-   * copy pulls none of BoardUI's own artwork with it.
+   * copy pulls none of the design system's own artwork with it.
    */
   logo?: ReactNode;
   /** Centre the heading, as the split layout usually wants. */
@@ -116,6 +116,47 @@ export interface AuthCardProps {
   className?: string;
 }
 
+function PasswordField({
+  name,
+  label,
+  placeholder,
+  autoComplete,
+  onFocus,
+}: {
+  name: string;
+  label: string;
+  placeholder: string;
+  autoComplete: string;
+  onFocus: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const Icon = visible ? RiEyeOffLine : RiEyeLine;
+
+  return (
+    <Input
+      name={name}
+      type={visible ? "text" : "password"}
+      label={label}
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      inputDir="ltr"
+      isRequired
+      onFocus={onFocus}
+      trailingAddon={
+        <button
+          type="button"
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+          onClick={() => setVisible((current) => !current)}
+          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground-icon-tertiary outline-none hover:text-foreground-icon-primary focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+        >
+          <Icon className="size-4" aria-hidden />
+        </button>
+      }
+    />
+  );
+}
+
 const COPY = {
   signin: {
     title: "Welcome back",
@@ -126,7 +167,7 @@ const COPY = {
   },
   signup: {
     title: "Create your account",
-    description: "Start building with BoardUI in a couple of minutes.",
+    description: "Create an account to save meals and get coaching.",
     cta: "Create account",
     switchLead: "Already have an account?",
     switchAction: "Sign in",
@@ -317,44 +358,35 @@ export function AuthCard({
           // full width than in two half-width columns, and it keeps the whole
           // form on one rhythm.
           <>
-            <Input
+            <PasswordField
               name="password"
-              type="password"
               label="Password"
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              isRequired
               onFocus={fieldFocus("password")}
             />
-            <Input
+            <PasswordField
               name="confirmPassword"
-              type="password"
               label="Confirm password"
               placeholder="Repeat your password"
               autoComplete="new-password"
-              isRequired
               onFocus={fieldFocus("confirmPassword")}
             />
           </>
         ) : (
-          <Input
+          <PasswordField
             name="password"
-            type="password"
             label="Password"
             placeholder={signup ? "At least 8 characters" : "Enter your password"}
             autoComplete={signup ? "new-password" : "current-password"}
-            isRequired
             onFocus={fieldFocus("password")}
           />
         )}
 
         {signup || verify ? null : (
-          <div className="flex items-center justify-between">
-            <Checkbox size="sm" isSelected={remember} onChange={setRemember}>
-              Remember me
-            </Checkbox>
-            <LinkButton href="#">Forgot password?</LinkButton>
-          </div>
+          <Checkbox size="sm" isSelected={remember} onChange={setRemember}>
+            Remember me
+          </Checkbox>
         )}
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>

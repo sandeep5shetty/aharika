@@ -39,7 +39,7 @@ const styles = sortCx({
 });
 
 /**
- * Horizontal content divider with three BoardUI surface treatments.
+ * Horizontal content divider with three the design system surface treatments.
  *
  * `single` places content within one continuous hairline, `double` frames it
  * with a line above and below, and `fill` uses the secondary surface color.

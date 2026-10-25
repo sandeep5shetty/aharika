@@ -1,23 +1,17 @@
 import {
+  areMealNudgesEnabled,
   getMealsBetween,
   getMemorySummaryRecord,
-  hasNudgeForSlot,
+  getNudgeForSlot,
   recordNudge,
 } from "@/lib/db/nutrition-queries";
 import { endOfDayInTimeZone, localDateKey, startOfDayInTimeZone } from "./day";
-
-const DEFAULT_MEAL_TIMES: Record<
-  "breakfast" | "lunch" | "dinner",
-  { hour: number; minute: number }
-> = {
-  breakfast: { hour: 9, minute: 0 },
-  dinner: { hour: 20, minute: 30 },
-  lunch: { hour: 13, minute: 30 },
-};
-
-const GRACE_MINUTES = 90;
-
-type MealSlot = "breakfast" | "lunch" | "dinner";
+import {
+  expectedMealMinutes,
+  isSlotDue,
+  shouldSkipRecordedNudge,
+  type MealSlot,
+} from "./nudge-timing";
 
 function localDateParts(date: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -45,29 +39,22 @@ function minutesSinceMidnight(hour: number, minute: number) {
   return hour * 60 + minute;
 }
 
-function expectedMinutes(
-  slot: MealSlot,
-  summary: Record<string, unknown> | undefined
-) {
-  const usual = summary?.usualMealTimes as
-    | Record<string, string>
-    | undefined;
-  const fromMemory = usual?.[slot];
-  if (fromMemory) {
-    const [hour, minute] = fromMemory.split(":").map(Number);
-    if (Number.isFinite(hour) && Number.isFinite(minute)) {
-      return minutesSinceMidnight(hour, minute);
-    }
-  }
-  const defaults = DEFAULT_MEAL_TIMES[slot];
-  return minutesSinceMidnight(defaults.hour, defaults.minute);
-}
+export type PendingNudge = {
+  date: string;
+  mealType: MealSlot;
+  message: string;
+};
 
-export async function getPendingNudge(
+/** Records at most one nudge per missed slot per day, then returns today's still-missing slots. */
+export async function getPendingNudges(
   userId: string,
   now: Date,
-  timeZone: string
-) {
+  timeZone: string,
+): Promise<PendingNudge[]> {
+  if (!(await areMealNudgesEnabled(userId))) {
+    return [];
+  }
+
   const dateKey = localDateKey(now, timeZone);
   const memory = await getMemorySummaryRecord(userId);
   const summary = memory?.summary as Record<string, unknown> | undefined;
@@ -77,35 +64,29 @@ export async function getPendingNudge(
   const mealsToday = await getMealsBetween(
     userId,
     startOfDayInTimeZone(now, timeZone),
-    endOfDayInTimeZone(now, timeZone)
+    endOfDayInTimeZone(now, timeZone),
   );
   const loggedTypes = new Set(mealsToday.map((meal) => meal.mealType));
-
   const slots: MealSlot[] = ["breakfast", "lunch", "dinner"];
+  const pending: PendingNudge[] = [];
 
   for (const slot of slots) {
-    const expected = expectedMinutes(slot, summary);
-    if (nowMinutes < expected + GRACE_MINUTES) {
-      continue;
-    }
-    if (loggedTypes.has(slot)) {
-      continue;
-    }
-    if (await hasNudgeForSlot(userId, slot, dateKey)) {
-      continue;
+    if (loggedTypes.has(slot)) continue;
+    const expected = expectedMealMinutes(slot, summary);
+    if (!isSlotDue(nowMinutes, expected)) continue;
+
+    const existing = await getNudgeForSlot(userId, slot, dateKey);
+    if (shouldSkipRecordedNudge(existing)) continue;
+    if (!existing) {
+      await recordNudge(userId, slot, dateKey);
     }
 
-    const inserted = await recordNudge(userId, slot, dateKey);
-    if (!inserted) {
-      continue;
-    }
-
-    return {
+    pending.push({
       date: dateKey,
       mealType: slot,
       message: `Looks like you haven't logged ${slot} yet — what did you have?`,
-    };
+    });
   }
 
-  return null;
+  return pending;
 }

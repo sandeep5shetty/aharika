@@ -19,6 +19,8 @@ import {
   lookupFoodCandidates,
 } from "@/lib/nutrition/lookup";
 import { resolveMealItems } from "@/lib/nutrition/resolve-items";
+import { inspectMealCompleteness } from "@/lib/nutrition/meal-completeness";
+import { isClinicalMemoryNote, unsafeGoalReason } from "@/lib/nutrition/safety";
 import { buildMealToolPayload } from "@/lib/nutrition/tool-output";
 
 const mealItemSchema = z.object({
@@ -95,6 +97,7 @@ export function createNutritionTools(options: {
         "Log a meal after resolving each food item. The user must confirm before it is saved to the diary.",
       execute: async ({ mealType, rawText, items }) => {
         await ensureTimezone();
+        const completeness = inspectMealCompleteness({ items, rawText });
         const resolved = await resolveMealItems(items);
         const saved = await saveMealRecord({
           calories: resolved.totals.calories,
@@ -116,13 +119,17 @@ export function createNutritionTools(options: {
           options.timezone
         );
 
-        return buildMealToolPayload({
-          confidence: resolved.confidence,
-          goals: progress.goals,
-          items: resolved.items,
-          meal: saved,
-          totals: progress.totals,
-        });
+        return {
+          ...buildMealToolPayload({
+            confidence: resolved.confidence,
+            goals: progress.goals,
+            items: resolved.items,
+            meal: saved,
+            totals: progress.totals,
+          }),
+          followUp: completeness.followUp,
+          warnings: completeness.warnings,
+        };
       },
       inputSchema: z.object({
         items: z.array(mealItemSchema).min(1),
@@ -146,6 +153,13 @@ export function createNutritionTools(options: {
       description:
         "Store a user-stated habit or preference in long-term memory notes.",
       execute: async ({ note }) => {
+        if (isClinicalMemoryNote(note)) {
+          return {
+            saved: false,
+            message:
+              "I can remember food habits, but not allergies, diagnoses, or other medical details.",
+          };
+        }
         await appendMemoryNote(userId, note);
         return { saved: true };
       },
@@ -169,6 +183,11 @@ export function createNutritionTools(options: {
                 proteinG: input.proteinG ?? current.proteinG,
               }
             : computeGoalsFromProfile(input.profile);
+
+        const unsafe = unsafeGoalReason(next);
+        if (unsafe) {
+          return { message: unsafe, saved: false };
+        }
 
         if (input.profile) {
           await upsertUserPreferenceFields(userId, {

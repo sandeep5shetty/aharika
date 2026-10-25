@@ -3,7 +3,7 @@ import type { HTMLAttributes, Ref } from "react";
 import { cx, sortCx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → Avatar (styles Avatar/1…Avatar/26; used throughout
+ * Figma source: the design system → Avatar (styles Avatar/1…Avatar/26; used throughout
  * dashboard 1, node 3731:2932).
  *
  * Sizes used in the designs (px):

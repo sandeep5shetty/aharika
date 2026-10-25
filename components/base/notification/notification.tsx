@@ -74,7 +74,7 @@ export interface NotificationProps
   icon?: IconComponent;
   /** Avatar leading visual. When set, it takes precedence over `icon`. */
   avatar?: NotificationAvatar;
-  /** Optional small BoardUI action buttons rendered below the message. */
+  /** Optional small the design system action buttons rendered below the message. */
   actions?: NotificationAction[];
   dismissible?: boolean;
   closeLabel?: string;

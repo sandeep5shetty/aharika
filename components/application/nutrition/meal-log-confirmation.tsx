@@ -6,6 +6,7 @@ import { RiCheckLine, RiCloseLine, RiRestaurantLine } from "@remixicon/react";
 import { useCallback } from "react";
 import { Button, ButtonLink } from "@/components/base/buttons/button";
 import { withBasePath } from "@/lib/constants";
+import { inspectMealCompleteness } from "@/lib/nutrition/meal-completeness";
 import type { ChatMessage } from "@/lib/types";
 import { cx } from "@/utils/cx";
 
@@ -13,6 +14,8 @@ type MealItemPreview = {
   name: string;
   quantity: number;
   unit: string;
+  foodId?: string;
+  estimatedMacros?: unknown;
 };
 
 type LogMealInput = {
@@ -47,6 +50,12 @@ function parseItems(value: unknown): MealItemPreview[] {
       typeof entry.unit === "string"
     ) {
       items.push({
+        estimatedMacros:
+          "estimatedMacros" in entry ? entry.estimatedMacros : undefined,
+        foodId:
+          "foodId" in entry && typeof entry.foodId === "string"
+            ? entry.foodId
+            : undefined,
         name: entry.name,
         quantity: entry.quantity,
         unit: entry.unit,
@@ -136,6 +145,9 @@ export function MealLogConfirmation({
   const logInput = isUpdate ? null : parseLogMealInput(toolPart.input);
   const updateInput = isUpdate ? parseUpdateMealInput(toolPart.input) : null;
   const items = logInput?.items ?? updateInput?.items ?? [];
+  const completeness = logInput
+    ? inspectMealCompleteness({ items: logInput.items, rawText: logInput.rawText })
+    : null;
 
   const approvalId = toolPart.approval?.id;
   const canRespond =
@@ -234,6 +246,11 @@ export function MealLogConfirmation({
                     <p className="text-text-secondary">{logInput.rawText}</p>
                   ) : null}
                   <ItemList items={items} />
+                  {completeness?.followUp ? (
+                    <p className="text-body-2-regular text-text-secondary">
+                      {completeness.followUp} You can still save this as a low-confidence estimate.
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
               {updateInput ? (

@@ -111,7 +111,7 @@ body {
   color: var(--color-text-primary);
 }
 
-/* Theme-aware monochrome BoardUI mark. Both images keep their intrinsic
+/* Theme-aware monochrome the design system mark. Both images keep their intrinsic
  * dimensions while the root theme class decides which one participates in
  * layout, avoiding a light-logo flash during hydration. */
 .theme-logo-dark,

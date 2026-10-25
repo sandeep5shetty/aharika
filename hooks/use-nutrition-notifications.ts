@@ -13,13 +13,17 @@ import {
   NOTIFICATION_PREVIEW_EMAIL,
   type MealType,
 } from "@/lib/nutrition/build-notifications";
+import type { MealSlot } from "@/lib/nutrition/nudge-timing";
 
 const MEAL_NUDGES_KEY = "aharika-meal-nudges";
+
+type UsualMealTimes = Partial<Record<MealSlot, string | null>>;
 
 type SummaryPayload = {
   totals: NutrientTotals;
   goals: NutrientTotals & { isDefault?: boolean };
   meals: { mealType: MealType }[];
+  usualMealTimes?: UsualMealTimes;
 };
 
 function readMealNudgesEnabled() {
@@ -60,9 +64,12 @@ export function useNutritionNotifications(enabled = true) {
     setLoading(true);
 
     try {
-      const [summaryRes, prefsRes] = await Promise.all([
+      const [summaryRes, prefsRes, nudgeRes] = await Promise.all([
         fetch(withBasePath(`/api/nutrition/summary?_=${Date.now()}`), { cache: "no-store" }),
         fetch(withBasePath("/api/nutrition/preferences"), { cache: "no-store" }),
+        isMember
+          ? fetch(withBasePath("/api/nutrition/nudges"), { cache: "no-store" })
+          : Promise.resolve(null),
       ]);
 
       if (generation !== fetchGeneration.current) return;
@@ -84,30 +91,68 @@ export function useNutritionNotifications(enabled = true) {
 
       const summary = (await summaryRes.json()) as SummaryPayload;
       const prefs = prefsRes.ok
-        ? ((await prefsRes.json()) as { timezone?: string })
+        ? ((await prefsRes.json()) as {
+            timezone?: string;
+            mealNudgesEnabled?: boolean;
+          })
         : { timezone: "Asia/Kolkata" };
+      const nudgeBody = nudgeRes?.ok
+        ? ((await nudgeRes.json()) as {
+            nudges?: { date: string; mealType: MealType; message: string }[];
+            usualMealTimes?: UsualMealTimes;
+          })
+        : undefined;
+      const scheduledNudges = nudgeBody?.nudges;
+      const usualMealTimes = summary.usualMealTimes ?? nudgeBody?.usualMealTimes;
 
       const built = buildNutritionNotifications({
         now: new Date(),
         timeZone: prefs.timezone ?? "Asia/Kolkata",
-        mealNudgesEnabled: readMealNudgesEnabled(),
+        mealNudgesEnabled:
+          typeof prefs.mealNudgesEnabled === "boolean"
+            ? prefs.mealNudgesEnabled
+            : readMealNudgesEnabled(),
         mealsToday: summary.meals.map((meal) => meal.mealType),
         totals: summary.totals,
         goals: summary.goals,
         isMember,
+        scheduledNudges,
+        usualMealTimes,
       });
 
       if (generation === fetchGeneration.current) {
         setNotifications(built);
+      }
+      if (isMember) {
+        void fetch(withBasePath("/api/nutrition/whatsapp/dispatch"), { method: "POST" });
       }
     } catch {
       if (generation === fetchGeneration.current) setNotifications([]);
     } finally {
       if (generation === fetchGeneration.current) setLoading(false);
     }
-  }, [enabled, isMember, session?.user]);
+  }, [enabled, isMember, session]);
 
   useEffect(() => {
+    if (!enabled || !isMember) return;
+    const dispatch = () => {
+      void fetch(withBasePath("/api/nutrition/whatsapp/dispatch"), { method: "POST" });
+    };
+    dispatch();
+    const interval = window.setInterval(dispatch, 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") dispatch();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [enabled, isMember]);
+
+  useEffect(() => {
+    // Fetching notifications after mount is the subscription, not a derived render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const onUpdate = () => load();
     window.addEventListener(NUTRITION_DATA_UPDATED, onUpdate);

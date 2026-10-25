@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
- * BoardUI theme tokens
+ * the design system theme tokens
  *
  * Layered as Tailwind v4 expects:
  *   @theme { ... }     primitives + ramp overrides → Tailwind utilities

@@ -221,6 +221,7 @@ export function FeedbackModal({
                 <Textarea
                   label="Your message"
                   placeholder="Share as much detail as you can — what you expected, what happened, and anything we should know."
+                  inputClassName="focus:placeholder:text-text-tertiary"
                   value={message}
                   onChange={setMessage}
                   onBlur={() => setMessageTouched(true)}

@@ -45,8 +45,8 @@ import { useNotifications } from "@/components/application/app-shell/notificatio
 import { OPEN_SETTINGS_EVENT } from "@/lib/settings/open-settings";
 /**
  * Figma sources:
- *   expanded  → Board UI → dashboard 1 → Sidebar (node 3731:2934)
- *   collapsed → Board UI → Sidebar (node 3768:3382)
+ *   expanded  → the design system → dashboard 1 → Sidebar (node 3731:2934)
+ *   collapsed → the design system → Sidebar (node 3768:3382)
  *
  * Floating sidebar panel. Expanded: 260px wide, p 12, radius/3xl (24px),
  * white 1px border, "Background/Sidebar Elevation" shadow, bg
@@ -75,8 +75,7 @@ function Collapsible({ collapsed, children, className }: { collapsed: boolean; c
     <span
       className={cx(
         "flex min-w-0 items-center overflow-hidden transition-[max-width,opacity,filter] duration-300 ease-in-out",
-        // Expanded, the cap is the row itself: a fixed cap (it was 160px)
-        // clipped any label wider than it, "Components and Blocks" included.
+        // Expanded, the cap is the row itself. A fixed cap clipped long labels.
         collapsed ? "max-w-0 opacity-0 blur-[3px]" : "max-w-full opacity-100 blur-0",
         className,
       )}
@@ -368,10 +367,18 @@ export function DashboardSidebar({
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
-      if (event.key.toLocaleLowerCase() === "l" && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        activateSearch();
+      if (
+        event.key.toLocaleLowerCase() !== "k" ||
+        !event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.shiftKey
+      ) {
+        return;
       }
+      event.preventDefault();
+      activateSearch();
+      window.requestAnimationFrame(() => searchInputRef.current?.focus());
     };
 
     window.addEventListener("keydown", onShortcut);
@@ -552,6 +559,7 @@ export function DashboardSidebar({
               ref={searchTriggerRef}
               type="button"
               aria-label="Quick Search"
+              aria-keyshortcuts="Control+K"
               title={collapsed ? "Quick Search" : undefined}
               onClick={activateSearch}
               className={cx(
@@ -571,7 +579,7 @@ export function DashboardSidebar({
                 </Collapsible>
               </span>
               <Collapsible collapsed={collapsed}>
-                <Kbd>⌘L</Kbd>
+                <Kbd aria-label="Control K">⌘K</Kbd>
               </Collapsible>
             </button>
           ))}

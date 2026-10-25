@@ -52,10 +52,16 @@ export function SettingsRow({
   label,
   description,
   children,
+  labelClassName,
+  controlClassName,
+  className,
 }: {
   label: string;
   description?: string;
   children?: ReactNode;
+  labelClassName?: string;
+  controlClassName?: string;
+  className?: string;
 }) {
   const localize = useTemplateCopy();
   return localize((
@@ -63,15 +69,20 @@ export function SettingsRow({
       className={cx(
         "flex min-h-[52px] w-full flex-col items-stretch gap-2 py-2.5 pe-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
         "border-b border-separator-border last:border-b-0",
+        className,
       )}
     >
-      <div className="flex min-w-0 flex-col">
+      <div className={cx("flex min-w-0 flex-col", labelClassName)}>
         <p className="text-body-regular text-text-primary">{label}</p>
         {description && (
           <p className="text-body-2-regular text-text-secondary">{description}</p>
         )}
       </div>
-      {children ? <div className="flex w-full min-w-0 sm:w-auto sm:justify-end">{children}</div> : null}
+      {children ? (
+        <div className={cx("flex w-full min-w-0 sm:w-auto sm:justify-end", controlClassName)}>
+          {children}
+        </div>
+      ) : null}
     </div>
   ));
 }

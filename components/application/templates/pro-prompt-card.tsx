@@ -27,7 +27,7 @@ export function ProPromptCard({
   leading,
   dismissible = true,
   placement = "corner",
-  "aria-label": ariaLabel = "BoardUI Pro",
+  "aria-label": ariaLabel = "Aharika",
   dismissLabel = "Dismiss",
   className,
 }: {
@@ -39,7 +39,7 @@ export function ProPromptCard({
   /** Light across the top, masked out before it reaches the copy. */
   backdrop?: ReactNode;
   backdropHeight?: number;
-  /** Replaces the default BoardUI Pro mark row when set. */
+  /** Replaces the default the design system Pro mark row when set. */
   leading?: ReactNode;
   dismissible?: boolean;
   /** Corner toast (default) or centered card inside a modal shell. */

@@ -2,8 +2,16 @@ import {
   getGoalForUser,
   getMealsBetween,
   getMemorySummaryRecord,
+  getUserPreferenceRow,
   getUserTimezone,
+  isCoachMemoryEnabled,
 } from "@/lib/db/nutrition-queries";
+import {
+  dietConstraintLines,
+  parseAllergies,
+  parseAllergyNote,
+  parseDietPattern,
+} from "./diet-preferences";
 import {
   compareToGoals,
   endOfDayInTimeZone,
@@ -24,7 +32,9 @@ export async function buildNutritionContextBlock(userId: string) {
     startOfDayInTimeZone(now, timeZone),
     endOfDayInTimeZone(now, timeZone)
   );
-  const memory = await getMemorySummaryRecord(userId);
+  const preference = await getUserPreferenceRow(userId);
+  const memoryEnabled = await isCoachMemoryEnabled(userId);
+  const memory = memoryEnabled ? await getMemorySummaryRecord(userId) : null;
   const summary = memory?.summary as Record<string, unknown> | undefined;
 
   const mealLines = meals.map(
@@ -40,13 +50,21 @@ export async function buildNutritionContextBlock(userId: string) {
     `Delta (actual minus goal): calories ${Math.round(delta.calories)}, protein ${Math.round(delta.proteinG)}g, carbs ${Math.round(delta.carbsG)}g, fat ${Math.round(delta.fatG)}g, fiber ${Math.round(delta.fiberG)}g.`,
   ];
 
+  lines.push(
+    ...dietConstraintLines({
+      dietPattern: parseDietPattern(preference?.dietPattern),
+      allergies: parseAllergies(preference?.allergies),
+      allergyNote: parseAllergyNote(preference?.allergyNote),
+    }),
+  );
+
   if (goals.isDefault) {
     lines.push(
       "User still has default goals — invite them to personalize calories/macros or share age, sex, weight, height, and activity."
     );
   }
 
-  if (summary) {
+  if (memoryEnabled && summary) {
     lines.push(`Long-term memory summary (JSON): ${JSON.stringify(summary)}`);
   }
 

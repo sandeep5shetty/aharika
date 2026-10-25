@@ -8,7 +8,7 @@ import { CheckboxGlyph, checkboxSizes } from "./checkbox-glyph";
 import type { CheckboxSize } from "./checkbox-glyph";
 
 /**
- * Figma source: Board UI → Checkbox (node 3699:2557 family; used in
+ * Figma source: the design system → Checkbox (node 3699:2557 family; used in
  * dashboard 1 table, nodes 3731:3258 etc.).
  *
  * radius/sm (4px). Two sizes:

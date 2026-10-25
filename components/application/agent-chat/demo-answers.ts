@@ -11,9 +11,9 @@ type DemoAnswer = { match: RegExp; reply: string };
 
 const ANSWERS: DemoAnswer[] = [
   {
-    match: /starter|what (is|does) this|about this app|boardui/i,
+    match: /starter|what (is|does) this|about this app|aharika/i,
     reply:
-      "This is the BoardUI chat starter: a Next.js app with a streaming chat, a dashboard, an inbox and sign-in screens, all built from BoardUI's free components and installed as source you own. Right now I'm in demo mode, so this answer is canned. Add AI_API_KEY in your Vercel project settings, redeploy, and the same chat talks to a real model.",
+      "Aharika is a nutrition coach. Log what you ate, and it tracks calories and meals, then helps with the next one. Create an account to save your diary.",
   },
   {
     match: /product update|announcement|release notes|changelog/i,

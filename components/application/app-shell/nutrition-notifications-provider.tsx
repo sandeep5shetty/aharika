@@ -12,6 +12,7 @@ import { useStarterBase } from "@/components/application/app-shell/app-shell";
 import type { NotificationCenterTab } from "@/components/application/notification-center/notification-center";
 import { useNutritionNotifications } from "@/hooks/use-nutrition-notifications";
 import { CHAT_PATH, withBasePath } from "@/lib/constants";
+import { parseNudgeNotificationId } from "@/lib/nutrition/nudge-timing";
 import { openSettingsModal } from "@/lib/settings/open-settings";
 
 const NUTRITION_TAB_LABELS: Record<NotificationCenterTab, string> = {
@@ -24,7 +25,20 @@ export function NutritionNotificationsProvider({ children }: { children: ReactNo
   const localize = useTemplateCopy();
   const router = useRouter();
   const base = useStarterBase();
-  const { notifications } = useNutritionNotifications(true);
+  const { notifications, reload } = useNutritionNotifications(true);
+
+  const dismissNudgeNotification = useCallback(
+    (notificationId: string) => {
+      const nudge = parseNudgeNotificationId(notificationId);
+      if (!nudge) return;
+      void fetch(withBasePath("/api/nutrition/nudges"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nudge),
+      }).then(() => reload());
+    },
+    [reload],
+  );
 
   const onAction = useCallback(
     (_notificationId: string, actionId: string) => {
@@ -51,6 +65,7 @@ export function NutritionNotificationsProvider({ children }: { children: ReactNo
     <NotificationsProvider
       notifications={notifications}
       onAction={onAction}
+      onItemRead={dismissNudgeNotification}
       tabLabels={NUTRITION_TAB_LABELS}
       emptyMessage="You're all caught up for now."
     >

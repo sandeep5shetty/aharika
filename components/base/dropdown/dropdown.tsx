@@ -18,7 +18,7 @@ import { cx } from "@/utils/cx";
 import { useDismissOnOutsidePress, useTriggerToggle } from "@/utils/use-dismiss-on-outside-press";
 
 /**
- * Dropdown — the BoardUI popover-menu recipe as composable primitives, built
+ * Dropdown — the design system popover-menu recipe as composable primitives, built
  * on React Aria's DialogTrigger/Popover. Unlike Select (which picks a value
  * into a trigger), Dropdown is a free-form menu surface: grouped rows of
  * actions, headers, footers, whatever the panel needs.

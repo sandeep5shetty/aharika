@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 import { cx } from "@/utils/cx";
 
 /**
- * Custom chevron glyphs drawn as vectors in the Board UI Figma file (they are
+ * Custom chevron glyphs drawn as vectors in the design system Figma file (they are
  * not Remix icons). Paths are copied 1:1 from the Figma export.
  *
  * All icons render `currentColor` and size via Tailwind `size-*` utilities,

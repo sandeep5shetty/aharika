@@ -20,7 +20,7 @@ import { cx } from "@/utils/cx";
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
- * Figma source: Board UI → Tab (node 3793:2942).
+ * Figma source: the design system → Tab (node 3793:2942).
  *
  * Underline tabs. The tab strip sits on a 1px border/button/default baseline;
  * the active tab paints a 2px color/blue/600 underline over it.

@@ -125,6 +125,13 @@ export function DashboardTeamMenu({
   const direction = useDirection();
   const { data: session } = useSession();
   const account = accountDisplayFromSession(session);
+  const isGuest =
+    !session?.user ||
+    session.user.type === "guest" ||
+    guestRegex.test(session.user.email ?? "");
+  const menuItems = isGuest
+    ? MENU_ITEMS.filter((item) => item.id !== "sign-out")
+    : MENU_ITEMS;
   const [isOpen, setIsOpen] = useState(false);
   const { openLogOutConfirm } = useLogOutConfirm();
   const isMobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
@@ -212,7 +219,7 @@ export function DashboardTeamMenu({
           </div>
 
           <div className="flex w-full flex-col gap-1 pt-1">
-            {MENU_ITEMS.map((item) => (
+            {menuItems.map((item) => (
               <TeamMenuItem key={item.id} {...item} onSelect={() => handleItem(item.id)} />
             ))}
           </div>

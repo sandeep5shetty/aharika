@@ -226,6 +226,7 @@ export const nudge = pgTable(
   "Nudge",
   {
     date: varchar("date", { length: 10 }).notNull(),
+    dismissedAt: timestamp("dismissedAt"),
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     mealType: mealTypeEnum("mealType").notNull(),
     sentAt: timestamp("sentAt").notNull().defaultNow(),
@@ -240,12 +241,48 @@ export const nudge = pgTable(
 
 export type Nudge = InferSelectModel<typeof nudge>;
 
+export const whatsappReminder = pgTable(
+  "WhatsappReminder",
+  {
+    date: varchar("date", { length: 10 }).notNull(),
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    mealType: mealTypeEnum("mealType").notNull(),
+    sentAt: timestamp("sentAt").notNull().defaultNow(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+  },
+  (table) => ({
+    userDateMealKindUnique: unique().on(
+      table.userId,
+      table.date,
+      table.mealType,
+      table.kind,
+    ),
+  }),
+);
+
+export type WhatsappReminder = InferSelectModel<typeof whatsappReminder>;
+
 export const userPreference = pgTable("UserPreference", {
   activity: varchar("activity", { length: 16 }),
   age: integer("age"),
   heightCm: doublePrecision("heightCm"),
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   sex: varchar("sex", { length: 8 }),
+  allergies: jsonb("allergies").$type<string[]>().notNull().default([]),
+  allergyNote: varchar("allergyNote", { length: 80 }),
+  coachMemoryEnabled: boolean("coachMemoryEnabled").notNull().default(true),
+  dietPattern: varchar("dietPattern", { length: 32 }),
+  mealNudgesEnabled: boolean("mealNudgesEnabled").notNull().default(true),
+  whatsappPhone: varchar("whatsappPhone", { length: 20 }),
+  whatsappRemindersEnabled: boolean("whatsappRemindersEnabled").notNull().default(false),
+  whatsappScheduledEnabled: boolean("whatsappScheduledEnabled").notNull().default(false),
+  whatsappSmartEnabled: boolean("whatsappSmartEnabled").notNull().default(false),
+  whatsappBreakfastTime: varchar("whatsappBreakfastTime", { length: 5 }),
+  whatsappLunchTime: varchar("whatsappLunchTime", { length: 5 }),
+  whatsappDinnerTime: varchar("whatsappDinnerTime", { length: 5 }),
   timezone: varchar("timezone", { length: 64 })
     .notNull()
     .default("Asia/Kolkata"),

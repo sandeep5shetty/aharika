@@ -12,7 +12,7 @@ import type {
 import { cx } from "@/utils/cx";
 
 /**
- * Figma source: Board UI → radio_default_sm / radio_selected_sm (used in the
+ * Figma source: the design system → radio_default_sm / radio_selected_sm (used in the
  * AI chat model picker, node 4035:6925) and the checkbox family tokens.
  *
  * Two sizes:

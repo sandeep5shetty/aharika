@@ -218,6 +218,8 @@ export interface ThemeToggleProps {
   className?: string;
   /** Size of segmented controls; small fits inside dropdown rows. */
   size?: "small" | "medium";
+  /** Called after the member picks a theme. Not fired on the first paint. */
+  onChange?: (theme: ThemeMode) => void;
   /** Circular reveal duration in milliseconds. */
   transitionDuration?: number;
 }
@@ -228,6 +230,7 @@ export function ThemeToggle({
   appearance = "sidebar",
   className,
   size = "medium",
+  onChange,
   transitionDuration = THEME_TRANSITION_DURATION,
 }: ThemeToggleProps) {
   const localize = useTemplateCopy();
@@ -236,7 +239,7 @@ export function ThemeToggle({
   const switchRef = useRef<HTMLLabelElement | null>(null);
   const pointerOriginRef = useRef<ThemeTransitionOrigin | null>(null);
 
-  // Makes the component self-contained in customer projects. BoardUI itself
+  // Makes the component self-contained in customer projects. the design system itself
   // also runs the same lookup before hydration to avoid a first-paint flash.
   useEffect(() => {
     applyTheme(storedTheme(), { persist: false });
@@ -303,6 +306,7 @@ export function ThemeToggle({
               title={mode === "light" ? "Light mode" : "Dark mode"}
               onClick={(event) => {
                 if (selected) return;
+                onChange?.(mode);
                 const pointerOrigin =
                   event.clientX === 0 && event.clientY === 0
                     ? null
@@ -347,6 +351,8 @@ export function ThemeToggle({
         aria-pressed={dark}
         title={dark ? "Light mode" : "Dark mode"}
         onClick={(event) => {
+          const next = dark ? "light" : "dark";
+          onChange?.(next);
           const pointerOrigin =
             event.clientX === 0 && event.clientY === 0
               ? null
@@ -378,9 +384,11 @@ export function ThemeToggle({
         pointerOriginRef.current = { x: event.clientX, y: event.clientY };
       }}
       onChange={(selected) => {
+        const next = selected ? "dark" : "light";
+        if (next !== theme) onChange?.(next);
         const origin = pointerOriginRef.current;
         pointerOriginRef.current = null;
-        void applyThemeWithTransition(selected ? "dark" : "light", {
+        void applyThemeWithTransition(next, {
           origin,
           element: switchRef.current,
           duration: transitionDuration,

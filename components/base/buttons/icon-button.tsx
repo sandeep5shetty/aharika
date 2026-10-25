@@ -8,7 +8,7 @@ import { cx, sortCx } from "@/utils/cx";
 import { directionalIconClass } from "@/utils/directional-icon";
 
 /**
- * Figma source: Board UI → dashboard 1 icon-only buttons (notification button
+ * Figma source: the design system → dashboard 1 icon-only buttons (notification button
  * node 3731:3035, table row actions nodes 3731:3284/3287/3290).
  *
  * Square icon-only button. Unlike `Button` (whose small size is radius/lg with

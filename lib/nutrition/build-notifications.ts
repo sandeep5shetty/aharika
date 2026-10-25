@@ -8,7 +8,8 @@ import {
 
 import type { NotificationCenterItem } from "@/components/application/notification-center/notification-center";
 import type { NutrientTotals } from "@/lib/nutrition/day-shared";
-import { compareToGoals } from "@/lib/nutrition/day-shared";
+import { compareToGoals, localDateKey } from "@/lib/nutrition/day-shared";
+import { expectedMealMinutes, type MealSlot } from "@/lib/nutrition/nudge-timing";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -21,31 +22,37 @@ export type BuildNotificationsInput = {
   goals: NutrientTotals & { isDefault?: boolean };
   /** Signed-in member with persisted diary; guests get onboarding-only items. */
   isMember: boolean;
+  /** When set, meal reminders come from the server nudge loop instead of learned hours. */
+  scheduledNudges?: { date: string; mealType: MealType; message: string }[];
+  /** Learned breakfast, lunch, and dinner times. Missing slots stay at 9:00, 13:30, and 20:30. */
+  usualMealTimes?: Partial<Record<MealSlot, string | null>>;
 };
 
 const MEAL_SLOTS: {
-  type: MealType;
+  type: MealSlot;
   label: string;
-  remindAfterHour: number;
-  logActionId: string;
 }[] = [
-  { type: "breakfast", label: "Breakfast", remindAfterHour: 9, logActionId: "log-breakfast" },
-  { type: "lunch", label: "Lunch", remindAfterHour: 13, logActionId: "log-lunch" },
-  { type: "dinner", label: "Dinner", remindAfterHour: 19, logActionId: "log-dinner" },
+  { type: "breakfast", label: "Breakfast" },
+  { type: "lunch", label: "Lunch" },
+  { type: "dinner", label: "Dinner" },
 ];
 
-function localHour(now: Date, timeZone: string) {
+function localClock(now: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "numeric",
+    minute: "numeric",
     hour12: false,
   }).formatToParts(now);
-  const hour = parts.find((part) => part.type === "hour")?.value ?? "0";
-  return Number.parseInt(hour, 10);
+  const read = (type: string) =>
+    Number.parseInt(parts.find((part) => part.type === type)?.value ?? "0", 10);
+  const hour = read("hour");
+  const minute = read("minute");
+  return { hour, minutes: hour * 60 + minute };
 }
 
 function relativeTimeLabel(now: Date, timeZone: string) {
-  const hour = localHour(now, timeZone);
+  const hour = localClock(now, timeZone).hour;
   if (hour < 12) return "This morning";
   if (hour < 17) return "Today";
   return "Tonight";
@@ -200,8 +207,18 @@ export function buildAllNutritionNotificationsPreview(): NotificationCenterItem[
 }
 
 export function buildNutritionNotifications(input: BuildNotificationsInput): NotificationCenterItem[] {
-  const { now, timeZone, mealNudgesEnabled, mealsToday, totals, goals, isMember } = input;
-  const hour = localHour(now, timeZone);
+  const {
+    now,
+    timeZone,
+    mealNudgesEnabled,
+    mealsToday,
+    totals,
+    goals,
+    isMember,
+    scheduledNudges,
+    usualMealTimes,
+  } = input;
+  const { hour, minutes } = localClock(now, timeZone);
   const delta = compareToGoals(totals, goals);
   const timeLabel = relativeTimeLabel(now, timeZone);
   const items: NotificationCenterItem[] = [];
@@ -241,7 +258,23 @@ export function buildNutritionNotifications(input: BuildNotificationsInput): Not
     });
   }
 
-  if (mealNudgesEnabled) {
+  if (mealNudgesEnabled && scheduledNudges) {
+    for (const nudge of scheduledNudges) {
+      const label = nudge.mealType.charAt(0).toUpperCase() + nudge.mealType.slice(1);
+      items.push({
+        id: `nudge-${nudge.date}-${nudge.mealType}`,
+        category: "mentions",
+        group: "Reminders",
+        title: `Log ${label.toLowerCase()}`,
+        description: nudge.message,
+        timestamp: "Now",
+        unread: true,
+        status: "information",
+        icon: RiRestaurantLine,
+        actions: logMealAction(`Log ${label.toLowerCase()}`),
+      });
+    }
+  } else if (mealNudgesEnabled) {
     if (mealsToday.length === 0 && hour >= 12) {
       items.push({
         id: "remind-any-meal",
@@ -256,10 +289,12 @@ export function buildNutritionNotifications(input: BuildNotificationsInput): Not
         actions: logMealAction(),
       });
     } else {
+      const dateKey = localDateKey(now, timeZone);
       for (const slot of MEAL_SLOTS) {
-        if (hour >= slot.remindAfterHour && !hasMealType(mealsToday, slot.type)) {
+        const remindAt = expectedMealMinutes(slot.type, { usualMealTimes });
+        if (minutes >= remindAt && !hasMealType(mealsToday, slot.type)) {
           items.push({
-            id: `remind-${slot.type}`,
+            id: `nudge-${dateKey}-${slot.type}`,
             category: "mentions",
             group: "Reminders",
             title: `Log ${slot.label.toLowerCase()}`,
