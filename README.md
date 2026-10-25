@@ -80,7 +80,7 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 | --- | --- |
 | `pnpm dev` | Start the dev server. |
 | `pnpm build` | Run migrations, then build. The database must be reachable during the build. |
-| `pnpm start` | Run the production server. On a long-running host this also starts the 30-minute reminder timer. |
+| `pnpm start` | Run the production server. On a long-running host this also starts the 15-minute reminder timer. |
 | `pnpm lint` | Run ESLint. |
 | `pnpm db:migrate` | Apply SQL migrations in `lib/db/migrations`. |
 | `pnpm db:setup` | Migrate and import foods. |
@@ -97,10 +97,15 @@ Two reminder types:
 - **Scheduled.** Sends at the saved local time even if the meal is already logged. Times are stored as 24-hour `HH:MM` and shown as a 12-hour wheel. The clock uses the timezone in Settings (default `Asia/Kolkata`).
 - **Smart.** Sends only when that meal is still missing and at least 90 minutes have passed since its time. If a scheduled reminder for that meal already went out today, the smart one is skipped.
 
-The server checks due reminders every 30 minutes.
+The server checks due reminders every 15 minutes. Requests without the exact `CRON_SECRET` are rejected. `AUTH_SECRET` is not used for this route.
 
-- **Vercel.** `vercel.json` calls `/api/cron/whatsapp-reminders`. Set `CRON_SECRET` in the Vercel project. Vercel sends it as `Authorization: Bearer <CRON_SECRET>`. Requests without that exact secret are rejected. A Hobby plan may only allow a daily cron; a 30-minute schedule needs a plan that allows it.
-- **Long-running Node server.** `pnpm start` runs the same check on boot and every 30 minutes. Restart the process after pulling this in so the timer starts. `AUTH_SECRET` is not used for this route.
+- **Vercel Hobby.** Do not put this schedule in the Vercel project. Hobby only allows a daily cron, and that would miss most meals. After deploy, create a job at [cron-job.org](https://cron-job.org) that runs every 15 minutes:
+  - URL: `https://<your-project>.vercel.app/api/cron/whatsapp-reminders`
+  - Method: `GET`
+  - Header: `Authorization: Bearer <CRON_SECRET>`
+  - `CRON_SECRET` in Vercel must be the same value, pasted once.
+  - After `aharika.tech` is valid, change the job URL to `https://aharika.tech/api/cron/whatsapp-reminders`.
+- **Long-running Node server.** `pnpm start` runs the same check on boot and every 15 minutes. Restart the process after pulling this in so the timer starts.
 
 An open chat tab can also trigger a check. The database claim makes sure the same meal is not texted twice.
 

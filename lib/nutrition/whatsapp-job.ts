@@ -12,7 +12,7 @@ import { parseWhatsappPhone, reminderName } from "@/lib/nutrition/whatsapp";
 import { sendSandboxWhatsapp } from "@/lib/nutrition/whatsapp-send";
 import { dueWhatsappReminder, zonedClock } from "@/lib/nutrition/whatsapp-schedule";
 
-export const WHATSAPP_REMINDER_JOB_MS = 30 * 60 * 1000;
+export const WHATSAPP_REMINDER_JOB_MS = 15 * 60 * 1000;
 
 type ReminderPreference = {
   timezone: string | null;
