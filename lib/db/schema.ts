@@ -241,6 +241,23 @@ export const nudge = pgTable(
 
 export type Nudge = InferSelectModel<typeof nudge>;
 
+export const notificationRead = pgTable(
+  "NotificationRead",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    notificationId: varchar("notificationId", { length: 80 }).notNull(),
+    readAt: timestamp("readAt").notNull().defaultNow(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+  },
+  (table) => ({
+    userNotificationUnique: unique().on(table.userId, table.notificationId),
+  }),
+);
+
+export type NotificationRead = InferSelectModel<typeof notificationRead>;
+
 export const whatsappReminder = pgTable(
   "WhatsappReminder",
   {

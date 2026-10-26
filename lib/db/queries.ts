@@ -727,3 +727,20 @@ export async function insertUserFeedback({
     throw new ChatbotError("bad_request:database", { cause: error });
   }
 }
+
+export async function listUserFeedback() {
+  try {
+    return await db
+      .select({
+        category: userFeedback.category,
+        contactEmail: userFeedback.contactEmail,
+        createdAt: userFeedback.createdAt,
+        id: userFeedback.id,
+        message: userFeedback.message,
+      })
+      .from(userFeedback)
+      .orderBy(desc(userFeedback.createdAt));
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}

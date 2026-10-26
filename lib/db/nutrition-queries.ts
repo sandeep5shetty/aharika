@@ -18,6 +18,7 @@ import {
   user,
   userMemorySummary,
   userPreference,
+  notificationRead,
   whatsappReminder,
   type FoodItem,
   type Meal,
@@ -307,6 +308,24 @@ export async function upsertUserPreferenceFields(
   });
 }
 
+export async function listNotificationReads(userId: string) {
+  const rows = await db
+    .select({ notificationId: notificationRead.notificationId })
+    .from(notificationRead)
+    .where(eq(notificationRead.userId, userId));
+  return rows.map((row) => row.notificationId);
+}
+
+export async function markNotificationReads(userId: string, notificationIds: string[]) {
+  const unique = [...new Set(notificationIds.map((id) => id.trim()).filter(Boolean))];
+  if (unique.length === 0) return;
+  await db
+    .insert(notificationRead)
+    .values(unique.map((notificationId) => ({ notificationId, userId })))
+    .onConflictDoNothing();
+}
+
+/** Members with WhatsApp reminders turned on and a saved phone number. */
 export async function listWhatsappReminderSubscribers() {
   return db
     .select({

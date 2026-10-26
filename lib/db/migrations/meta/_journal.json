@@ -64,6 +64,13 @@
       "when": 1791600000000,
       "tag": "0008_whatsapp_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791700000000,
+      "tag": "0009_notification_reads",
+      "breakpoints": true
     }
   ]
 }

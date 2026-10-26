@@ -10,6 +10,7 @@ import { refreshNutritionProgress } from "@/lib/nutrition/refresh-progress";
 import { sumMealItems } from "@/lib/nutrition/meal-patch";
 import { cx } from "@/utils/cx";
 
+import { MealDeleteConfirm } from "./meal-delete-confirm";
 import { NutrientProgressBar } from "./nutrient-progress-bar";
 
 type MealLogOutput = {
@@ -75,6 +76,7 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
   );
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -147,6 +149,7 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
     setFeedback(null);
     try {
       await deleteMeal(mealId);
+      setConfirmOpen(false);
       setHidden(true);
       refreshNutritionProgress();
     } catch {
@@ -236,13 +239,24 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
               variant="secondary"
               size="small"
               className="text-text-error-primary"
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
             >
               Delete
             </Button>
           </div>
         </div>
       ) : null}
+      <MealDeleteConfirm
+        isOpen={confirmOpen}
+        mealLabel={output.meal?.rawText}
+        pending={busy}
+        onClose={() => {
+          if (!busy) setConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          void handleDelete();
+        }}
+      />
     </div>
   );
 }

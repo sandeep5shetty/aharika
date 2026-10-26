@@ -1,12 +1,31 @@
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { insertUserFeedback } from "@/lib/db/queries";
+import { isAdminEmail } from "@/lib/admin";
+import { insertUserFeedback, listUserFeedback } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 
 const feedbackSchema = z.object({
   category: z.enum(["general", "bug", "idea"]),
   message: z.string().trim().min(10).max(2000),
 });
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id || !isAdminEmail(session.user.email)) {
+    return new ChatbotError("forbidden:chat").toResponse();
+  }
+
+  const rows = await listUserFeedback();
+  return Response.json({
+    feedback: rows.map((row) => ({
+      category: row.category,
+      contactEmail: row.contactEmail,
+      createdAt: row.createdAt.toISOString(),
+      id: row.id,
+      message: row.message,
+    })),
+  });
+}
 
 export async function POST(request: Request) {
   const session = await auth();

@@ -7,6 +7,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -46,6 +47,8 @@ export function NotificationsProvider({
   notifications = STARTER_NOTIFICATIONS,
   onAction,
   onItemRead,
+  onPersistRead,
+  persistedReadIds,
   tabLabels,
   emptyMessage,
 }: {
@@ -53,6 +56,8 @@ export function NotificationsProvider({
   notifications?: NotificationCenterItem[];
   onAction?: (notificationId: string, actionId: string) => void;
   onItemRead?: (notificationId: string) => void;
+  onPersistRead?: (notificationIds: string[]) => void;
+  persistedReadIds?: readonly string[];
   tabLabels?: Partial<Record<NotificationCenterTab, string>>;
   emptyMessage?: string;
 }) {
@@ -78,10 +83,26 @@ export function NotificationsProvider({
         for (const id of ids) next.add(id);
         return next;
       });
+      onPersistRead?.(ids);
       for (const id of ids) onItemRead?.(id);
     },
-    [onItemRead],
+    [onItemRead, onPersistRead],
   );
+
+  useEffect(() => {
+    if (!persistedReadIds || persistedReadIds.length === 0) return;
+    setReadIds((current) => {
+      let changed = false;
+      const next = new Set(current);
+      for (const id of persistedReadIds) {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [persistedReadIds]);
 
   const handleAction = useCallback(
     (notificationId: string, actionId: string) => {

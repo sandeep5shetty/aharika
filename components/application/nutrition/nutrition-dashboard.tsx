@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { NotificationBell } from "@/components/application/app-shell/notification-bell";
+import { ViewFeedbacksButton } from "@/components/application/feedback/view-feedbacks-button";
 import { AppShell, useStarterBase } from "@/components/application/app-shell/app-shell";
 import { OrdersChartCard } from "@/components/application/dashboard/orders-chart-card";
 import {
@@ -35,6 +36,7 @@ import {
 } from "@/lib/nutrition/day-shared";
 import { NUTRITION_DATA_UPDATED } from "@/lib/nutrition/events";
 import { DailyGoalsRadialChart } from "@/components/application/nutrition/daily-goals-radial-chart";
+import { MealDeleteConfirm } from "@/components/application/nutrition/meal-delete-confirm";
 import { MealEditModal } from "@/components/application/nutrition/meal-edit-modal";
 
 type DashboardProps = {
@@ -176,13 +178,28 @@ export function NutritionDashboard({
 
   const firstName = displayNameFromSession(session);
 
-  const deleteMeal = async (id: string) => {
-    const response = await fetch(withBasePath(`/api/nutrition/meals?id=${id}`), {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      setTableMeals((prev) => prev.filter((meal) => meal.id !== id));
-      window.dispatchEvent(new Event(NUTRITION_DATA_UPDATED));
+  const [pendingDelete, setPendingDelete] = useState<NutritionMealRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const requestDelete = (id: string) => {
+    const meal = tableMeals.find((row) => row.id === id);
+    if (meal) setPendingDelete(meal);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(withBasePath(`/api/nutrition/meals?id=${pendingDelete.id}`), {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setTableMeals((prev) => prev.filter((meal) => meal.id !== pendingDelete.id));
+        window.dispatchEvent(new Event(NUTRITION_DATA_UPDATED));
+        setPendingDelete(null);
+      }
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -193,6 +210,7 @@ export function NutritionDashboard({
       actions={
         <>
           <NotificationBell />
+          <ViewFeedbacksButton />
           <ButtonLink
             variant="primary"
             size="medium"
@@ -237,8 +255,19 @@ export function NutritionDashboard({
 
       <NutritionMealsTable
         rows={tableMeals}
-        onDelete={deleteMeal}
+        onDelete={requestDelete}
         onEdit={setEditingMeal}
+      />
+      <MealDeleteConfirm
+        isOpen={pendingDelete !== null}
+        mealLabel={pendingDelete?.description}
+        pending={deleting}
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => {
+          void confirmDelete();
+        }}
       />
       <MealEditModal
         meal={editingMeal}

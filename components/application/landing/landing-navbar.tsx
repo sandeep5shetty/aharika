@@ -43,10 +43,8 @@ export function LandingNavbar() {
   const footerHref = `${homeHref}#footer`;
 
   return (
-    <header
-      className="grid w-full grid-cols-[1fr_auto_1fr] items-center border-b border-white/50 px-4 py-6 md:px-8"
-    >
-      <Link href={homeHref} className="flex items-center gap-2 justify-self-start">
+    <header className="flex w-full items-center justify-between gap-3 border-b border-white/50 px-4 py-6 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:px-8">
+      <Link href={homeHref} className="flex min-w-0 items-center gap-2 justify-self-start">
         <Image
           src={logoSrc}
           alt="Aharika logo"
@@ -55,7 +53,7 @@ export function LandingNavbar() {
           className="size-7"
           unoptimized
         />
-        <span className="font-moonet-wordmark text-xl font-bold tracking-tight text-text-wordmark">
+        <span className="truncate font-moonet-wordmark text-xl font-bold tracking-tight text-text-wordmark">
           AHARIKA
         </span>
       </Link>
@@ -90,7 +88,7 @@ export function LandingNavbar() {
         </Link>
       </nav>
 
-    <div className="flex items-center justify-self-end gap-4">
+      <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-4">
         <ThemeToggle appearance="segmented" size="small" />
         <LinkButton href={loginHref} className="hidden sm:inline-flex">
           Sign in

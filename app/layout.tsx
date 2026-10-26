@@ -28,9 +28,46 @@ const instrumentSerif = Instrument_Serif({
   weight: "400",
 });
 
+const description =
+  "Your AI nutrition coach — log meals, track progress, and get personalized guidance.";
+
+function appOrigin() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (fromEnv) {
+    try {
+      return new URL(fromEnv);
+    } catch {
+      // Ignore a malformed public URL and use the production origin.
+    }
+  }
+  return new URL("https://aharika.tech");
+}
+
+const ogImage = {
+  url: "/og-image.png",
+  width: 1733,
+  height: 1005,
+  alt: "Aharika — someone who cares about every meal you eat",
+} as const;
+
 export const metadata: Metadata = {
+  metadataBase: appOrigin(),
   title: "Aharika",
-  description: "Your AI nutrition coach — log meals, track progress, and get personalized guidance.",
+  description,
+  openGraph: {
+    title: "Aharika",
+    description,
+    siteName: "Aharika",
+    type: "website",
+    locale: "en_US",
+    images: [ogImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aharika",
+    description,
+    images: [ogImage],
+  },
   icons: {
     icon: [
       { url: "/brand/aharika-favicon.svg", type: "image/svg+xml" },
