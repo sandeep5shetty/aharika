@@ -14,6 +14,7 @@ import {
   VoiceInputProvider,
   VoiceRecordingBar,
 } from "@/components/application/agent-chat/voice-input";
+import { VoiceSpeakerSelect } from "@/components/application/agent-chat/voice-speaker-select";
 import { VoiceSttLanguageSelect } from "@/components/application/agent-chat/voice-stt-language-select";
 import { showToast } from "@/lib/notification-toast/show-toast";
 import type { ChatMessage } from "@/lib/types";
@@ -112,7 +113,8 @@ export function AgentComposer({
       )}
 
       {voiceEnabled ? (
-        <div className="flex h-[26px] w-full items-center justify-end">
+        <div className="flex h-[26px] w-full items-center justify-end gap-2">
+          <VoiceSpeakerSelect />
           <VoiceSttLanguageSelect />
         </div>
       ) : null}

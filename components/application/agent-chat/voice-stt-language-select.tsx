@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type Key } from "react";
+import { RiGlobalLine } from "@remixicon/react";
 import { Select, SelectItem } from "@/components/base/select/select";
 import {
   readStoredVoiceLanguage,
@@ -29,11 +30,20 @@ export function VoiceSttLanguageSelect({ className }: { className?: string }) {
   return (
     <Select
       aria-label="Voice recognition language"
-      className={cx("w-[5.5rem]", className)}
+      className={cx("w-[6.75rem]", className)}
       selectedKey={language}
       onSelectionChange={handleChange}
       size="sm"
       triggerClassName="text-caption-1-semibold"
+      renderValue={(state) => (
+        <>
+          <RiGlobalLine
+            className="size-3.5 shrink-0 text-foreground-icon-secondary"
+            aria-hidden
+          />
+          <span className="truncate">{state.selectedText}</span>
+        </>
+      )}
     >
       {VOICE_STT_LANGUAGE_OPTIONS.map((option) => (
         <SelectItem id={option.value} key={option.value} textValue={option.label}>

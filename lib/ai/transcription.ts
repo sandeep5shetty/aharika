@@ -3,6 +3,7 @@ export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 export const MIN_AUDIO_BYTES = 512;
 
 export const VOICE_STT_LANGUAGE_STORAGE_KEY = "nutrition-voice-stt-language";
+export const VOICE_LANGUAGE_EVENT = "aharika:voice-language";
 
 export const SARVAM_STT_LANGUAGE_CODES = [
   "unknown",
@@ -186,6 +187,7 @@ export function storeVoiceLanguage(code: SarvamSttLanguageCode) {
     return;
   }
   window.localStorage.setItem(VOICE_STT_LANGUAGE_STORAGE_KEY, code);
+  window.dispatchEvent(new Event(VOICE_LANGUAGE_EVENT));
 }
 
 export type SttTranscriptResult = {

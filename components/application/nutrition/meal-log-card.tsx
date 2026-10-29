@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/base/badges/badge";
 import { Chip } from "@/components/base/badges/chip";
 import { Button } from "@/components/base/buttons/button";
 import { IconButton } from "@/components/base/buttons/icon-button";
@@ -63,10 +62,6 @@ async function deleteMeal(id: string) {
   }
 }
 
-
-function confidenceBadgeColor(confidence: ConfidenceLevel): "primary" | "neutral" {
-  return confidence === "High" ? "primary" : "neutral";
-}
 
 export function MealLogCard({ output }: { output: MealLogOutput }) {
   const initialItems = output.items ?? [];
@@ -179,7 +174,6 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
       <div className="flex items-center justify-between gap-2">
         <span className="text-body-medium text-text-primary">Meal logged</span>
         <div className="flex shrink-0 items-center gap-1.5">
-          <Badge color={confidenceBadgeColor(confidence)}>{confidence}</Badge>
           {mealId ? (
             <IconButton
               icon={RiEditLine}

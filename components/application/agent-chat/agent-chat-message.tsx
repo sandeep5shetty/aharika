@@ -12,6 +12,7 @@ import {
   ProgressCard,
 } from "@/components/application/nutrition/meal-log-card";
 import { MealLogConfirmation } from "@/components/application/nutrition/meal-log-confirmation";
+import { stopReadoutIf, toggleReadout, useReadoutActive } from "@/components/application/agent-chat/voice-readout";
 import { withBasePath } from "@/lib/constants";
 import type { ChatMessage } from "@/lib/types";
 import { cx } from "@/utils/cx";
@@ -52,13 +53,15 @@ function AgentBlobAvatar() {
 export interface AgentMessageProps {
   role: string;
   text: string;
+  /** Stable id so only one readout plays at a time. */
+  readoutId?: string;
   /** True while this message is still being streamed. */
   streaming?: boolean;
   /** When the message first appeared, for the hover timestamp. */
   at?: number;
 }
 
-export function AgentMessage({ role, text, streaming = false, at }: AgentMessageProps) {
+export function AgentMessage({ role, text, readoutId, streaming = false, at }: AgentMessageProps) {
   const localize = useTemplateCopy();
   if (!text) return null;
 
@@ -73,7 +76,7 @@ export function AgentMessage({ role, text, streaming = false, at }: AgentMessage
   return localize((
     <div className="group/message flex flex-col gap-1 px-1">
       <StreamedText text={text} />
-      <MessageActions text={text} at={at} hidden={streaming} />
+      <MessageActions text={text} readoutId={readoutId} at={at} hidden={streaming} />
     </div>
   ));
 }
@@ -138,10 +141,20 @@ const Line = memo(function Line({ text, animate }: { text: string; animate: bool
   );
 });
 
-function MessageActions({ text, at, hidden }: { text: string; at?: number; hidden: boolean }) {
+function MessageActions({
+  text,
+  readoutId,
+  at,
+  hidden,
+}: {
+  text: string;
+  readoutId?: string;
+  at?: number;
+  hidden: boolean;
+}) {
   const localize = useTemplateCopy();
   const [copied, setCopied] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const speaking = useReadoutActive(readoutId ?? "");
 
   useEffect(() => {
     if (!copied) return;
@@ -149,13 +162,10 @@ function MessageActions({ text, at, hidden }: { text: string; at?: number; hidde
     return () => clearTimeout(timer);
   }, [copied]);
 
-  // Speech keeps running if the component goes away mid-sentence, so it is
-  // cancelled on unmount rather than left talking over the next screen.
   useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
-    };
-  }, []);
+    if (!readoutId) return;
+    return () => stopReadoutIf(readoutId);
+  }, [readoutId]);
 
   const copy = async () => {
     try {
@@ -168,19 +178,8 @@ function MessageActions({ text, at, hidden }: { text: string; at?: number; hidde
   };
 
   const toggleSpeech = () => {
-    const synth = typeof window === "undefined" ? undefined : window.speechSynthesis;
-    if (!synth) return;
-    if (speaking) {
-      synth.cancel();
-      setSpeaking(false);
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    synth.cancel();
-    synth.speak(utterance);
-    setSpeaking(true);
+    if (!readoutId) return;
+    void toggleReadout(readoutId, text);
   };
 
   return localize((
@@ -377,7 +376,13 @@ export function AgentChatTurn({
         return null;
       })}
       {text ? (
-        <AgentMessage role="assistant" text={text} streaming={streaming} at={at} />
+        <AgentMessage
+          role="assistant"
+          text={text}
+          readoutId={message.id}
+          streaming={streaming}
+          at={at}
+        />
       ) : null}
       </div>
     </div>
