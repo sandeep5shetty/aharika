@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import type { MouseEvent } from "react";
 
 import { ThemeToggle } from "@/components/application/theme/theme-toggle";
@@ -32,6 +33,8 @@ function scrollToSection(
 }
 
 export function LandingNavbar() {
+  const { data: session, status } = useSession();
+  const showSignIn = status !== "loading" && session?.user?.type !== "regular";
   const homeHref = withBasePath(LANDING_PATH);
   const chatHref = withBasePath(CHAT_PATH);
   const loginHref = withBasePath("/login");
@@ -90,9 +93,11 @@ export function LandingNavbar() {
 
       <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-4">
         <ThemeToggle appearance="segmented" size="small" />
-        <LinkButton href={loginHref} className="hidden sm:inline-flex">
-          Sign in
-        </LinkButton>
+        {showSignIn ? (
+          <LinkButton href={loginHref} className="hidden sm:inline-flex">
+            Sign in
+          </LinkButton>
+        ) : null}
         <ButtonLink href={chatHref} size="small" leadingIcon={RiArrowRightLine}>
           Open coach
         </ButtonLink>

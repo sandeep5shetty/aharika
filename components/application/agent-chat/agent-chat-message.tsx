@@ -268,6 +268,7 @@ export interface AgentChatTurnProps {
   streaming?: boolean;
   at?: number;
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  onEditPendingMeal?: (toolCallId: string, input: unknown) => void;
   guestMode?: boolean;
   onGuestMealBlocked?: () => void;
 }
@@ -278,6 +279,7 @@ export function AgentChatTurn({
   streaming = false,
   at,
   addToolApprovalResponse,
+  onEditPendingMeal,
   guestMode,
   onGuestMealBlocked,
 }: AgentChatTurnProps) {
@@ -349,6 +351,7 @@ export function AgentChatTurn({
               key={toolPart.toolCallId}
               addToolApprovalResponse={addToolApprovalResponse}
               guestMode={guestMode}
+              onEditInput={(input) => onEditPendingMeal?.(toolPart.toolCallId, input)}
               onGuestMealBlocked={onGuestMealBlocked}
               toolPart={
                 toolPart as Parameters<typeof MealLogConfirmation>[0]["toolPart"]

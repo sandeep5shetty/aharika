@@ -7,6 +7,7 @@ import {
   parseDietPattern,
 } from "./diet-preferences";
 import { computeGoalsFromProfile } from "./goals";
+import { goalsForRange } from "./day-shared";
 import { dueWhatsappReminder } from "./whatsapp-schedule";
 import {
   from12Hour,
@@ -45,6 +46,23 @@ const goals = computeGoalsFromProfile({
 
 assert.ok(goals.calories > 1500);
 assert.ok(goals.proteinG > 50);
+
+const weekly = goalsForRange(
+  { calories: 2592, proteinG: 72, carbsG: 415, fatG: 72, fiberG: 35, isDefault: false },
+  "7d",
+);
+assert.equal(weekly.calories, 2592 * 7);
+assert.equal(weekly.proteinG, 72 * 7);
+assert.equal(weekly.carbsG, 415 * 7);
+assert.equal(weekly.fatG, 72 * 7);
+assert.equal(weekly.fiberG, 35 * 7);
+assert.equal(
+  goalsForRange(
+    { calories: 2592, proteinG: 72, carbsG: 415, fatG: 72, fiberG: 35, isDefault: false },
+    "today",
+  ).calories,
+  2592,
+);
 assert.equal(goals.isDefault, false);
 
 assert.equal(isOffTopicUserMessage("write me java code to add numbers"), true);

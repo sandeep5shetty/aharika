@@ -9,6 +9,7 @@ import {
   DailyNutritionPoint,
   emptyTotals,
   endOfDayInTimeZone,
+  goalsForRange,
   localDateKey,
   NutrientTotals,
   startOfDayInTimeZone,
@@ -20,6 +21,7 @@ export {
   compareToGoals,
   endOfDayInTimeZone,
   goalRemainderLabel,
+  goalsForRange,
   localDateKey,
   nutrientProgressPercent,
   parseDateKey,
@@ -113,7 +115,7 @@ export async function getProgressSnapshot(
   timeZone: string,
 ) {
   const goalRow = await getGoalForUser(userId);
-  const goals = goalsFromRow(goalRow);
+  const goals = goalsForRange(goalsFromRow(goalRow), range);
   const now = new Date();
 
   if (range === "today") {

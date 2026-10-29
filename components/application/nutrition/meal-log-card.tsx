@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/base/badges/badge";
 import { Chip } from "@/components/base/badges/chip";
 import { Button } from "@/components/base/buttons/button";
+import { IconButton } from "@/components/base/buttons/icon-button";
+import { RiEditLine } from "@remixicon/react";
 import type { ConfidenceLevel, MealItemBreakdown } from "@/lib/types";
 import { withBasePath } from "@/lib/constants";
 import { refreshNutritionProgress } from "@/lib/nutrition/refresh-progress";
@@ -11,6 +13,7 @@ import { sumMealItems } from "@/lib/nutrition/meal-patch";
 import { cx } from "@/utils/cx";
 
 import { MealDeleteConfirm } from "./meal-delete-confirm";
+import { MealEditModal } from "./meal-edit-modal";
 import { NutrientProgressBar } from "./nutrient-progress-bar";
 
 type MealLogOutput = {
@@ -69,20 +72,28 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
   const initialItems = output.items ?? [];
   const [items, setItems] = useState(initialItems);
   const [mealTotals, setMealTotals] = useState(() => sumMealItems(initialItems));
-  const confidence = output.confidence ?? "Medium";
   const mealId = output.meal?.id;
   const [mealType, setMealType] = useState<(typeof MEAL_TYPES)[number]>(
     (output.meal?.mealType as (typeof MEAL_TYPES)[number]) ?? "lunch",
   );
+  const [rawText, setRawText] = useState(output.meal?.rawText ?? "");
+  const [confidence, setConfidence] = useState<ConfidenceLevel>(output.confidence ?? "Medium");
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const editedRef = useRef(false);
 
   useEffect(() => {
+    if (editedRef.current) return;
     setItems(output.items ?? []);
     setMealTotals(sumMealItems(output.items ?? []));
-  }, [output.items]);
+    setRawText(output.meal?.rawText ?? "");
+    setConfidence(output.confidence ?? "Medium");
+    const nextType = MEAL_TYPES.find((type) => type === output.meal?.mealType);
+    if (nextType) setMealType(nextType);
+  }, [output.confidence, output.items, output.meal?.mealType, output.meal?.rawText]);
 
   useEffect(() => {
     if (mealId) {
@@ -167,10 +178,21 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
     <div className="w-full max-w-md space-y-3 rounded-2xl border border-border-button-default bg-background-primary-default p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <span className="text-body-medium text-text-primary">Meal logged</span>
-        <Badge color={confidenceBadgeColor(confidence)}>{confidence}</Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Badge color={confidenceBadgeColor(confidence)}>{confidence}</Badge>
+          {mealId ? (
+            <IconButton
+              icon={RiEditLine}
+              size="small"
+              aria-label="Edit meal"
+              disabled={busy}
+              onClick={() => setEditing(true)}
+            />
+          ) : null}
+        </div>
       </div>
-      {output.meal?.rawText ? (
-        <p className="text-body-regular text-text-secondary">{output.meal.rawText}</p>
+      {rawText ? (
+        <p className="text-body-regular text-text-secondary">{rawText}</p>
       ) : null}
       <ul className="space-y-2">
         {items.map((item) => (
@@ -246,6 +268,48 @@ export function MealLogCard({ output }: { output: MealLogOutput }) {
           </div>
         </div>
       ) : null}
+      <MealEditModal
+        meal={
+          editing && mealId
+            ? {
+                id: mealId,
+                description: rawText,
+                mealType,
+                confidence,
+                calories: mealTotals.calories,
+                loggedLabel: "",
+                loggedTs: Date.now(),
+              }
+            : null
+        }
+        hint="Update this diary entry without leaving the chat."
+        onClose={() => setEditing(false)}
+        onSaved={(meal) => {
+          editedRef.current = true;
+          setRawText(meal.description);
+          const nextType = MEAL_TYPES.find((type) => type === meal.mealType);
+          if (nextType) setMealType(nextType);
+          if (meal.confidence === "High" || meal.confidence === "Medium" || meal.confidence === "Low") {
+            setConfidence(meal.confidence);
+          }
+          if (meal.items) {
+            setItems(meal.items);
+            setMealTotals(sumMealItems(meal.items));
+          } else {
+            setMealTotals((current) => ({
+              ...current,
+              calories: meal.calories,
+              proteinG: meal.proteinG ?? current.proteinG,
+              carbsG: meal.carbsG ?? current.carbsG,
+              fatG: meal.fatG ?? current.fatG,
+              fiberG: meal.fiberG ?? current.fiberG,
+            }));
+          }
+          setFeedback("Meal updated");
+          refreshNutritionProgress();
+          setEditing(false);
+        }}
+      />
       <MealDeleteConfirm
         isOpen={confirmOpen}
         mealLabel={output.meal?.rawText}

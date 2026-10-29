@@ -77,7 +77,7 @@ export function createNutritionTools(options: {
     }),
     getProgress: tool({
       description:
-        "Get calorie and macro totals compared to goals for today or the last 7 days.",
+        "Get calorie and macro totals compared to goals for today or the last 7 days. For 7d, totals are the 7-day sum and goals are the daily targets multiplied by 7. Do not multiply those goals again.",
       execute: async ({ range }) => {
         await ensureTimezone();
         const snapshot = await getProgressSnapshot(

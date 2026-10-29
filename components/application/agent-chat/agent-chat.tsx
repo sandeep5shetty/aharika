@@ -3,7 +3,7 @@
 import { useTemplateCopy } from "@/components/foundations/template-copy/template-copy";
 
 import { useChat } from "@ai-sdk/react";
-import { RiChat3Line, RiCloseLine, RiMenuLine } from "@remixicon/react";
+import { RiChatAiLine, RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 
 import { Button } from "@/components/base/buttons/button";
@@ -691,7 +691,7 @@ export function AgentChat({
               <div className="ms-auto flex shrink-0 items-center gap-1">
                 <NotificationBell className="max-xl:size-8 [&_svg]:max-xl:size-4" />
                 <IconButton
-                  icon={historyOpen ? RiCloseLine : RiChat3Line}
+                  icon={historyOpen ? RiCloseLine : RiChatAiLine}
                   size="small"
                   aria-label={historyOpen ? "Close chat history" : "Open chat history"}
                   aria-expanded={historyOpen}
@@ -737,6 +737,22 @@ export function AgentChat({
                           streaming={busy && index === messages.length - 1}
                           at={messageAt[message.id]}
                           addToolApprovalResponse={addToolApprovalResponse}
+                          onEditPendingMeal={(toolCallId, input) => {
+                            setMessages((current) =>
+                              current.map((entry) => {
+                                if (entry.id !== message.id) return entry;
+                                return {
+                                  ...entry,
+                                  parts: entry.parts.map((part) => {
+                                    if (!("toolCallId" in part) || part.toolCallId !== toolCallId) {
+                                      return part;
+                                    }
+                                    return { ...part, input } as typeof part;
+                                  }),
+                                };
+                              }),
+                            );
+                          }}
                           guestMode={isGuest}
                           onGuestMealBlocked={() => promptGuestUpgrade("meal_logging")}
                         />

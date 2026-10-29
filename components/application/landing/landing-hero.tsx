@@ -112,14 +112,14 @@ export function LandingHero() {
 
       <div
         className={cx(
-          "mb-3 mt-6 h-10 w-full border-y border-white opacity-30",
+          "mb-2 mt-4 h-10 w-full border-y border-white opacity-30 md:mb-3 md:mt-5",
           "bg-[repeating-linear-gradient(315deg,currentColor_0,currentColor_1px,transparent_0,transparent_50%)]",
           "bg-size-[10px_10px] text-white",
         )}
         aria-hidden
       />
 
-      <div className="relative z-10 mt-2 -mb-8 flex w-full justify-center">
+      <div className="relative z-10 mt-1 -mb-8 flex w-full justify-center md:mt-3">
         <LandingTriplePhone />
       </div>
 

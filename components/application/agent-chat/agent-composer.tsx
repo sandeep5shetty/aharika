@@ -4,7 +4,7 @@ import { useTemplateCopy } from "@/components/foundations/template-copy/template
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { RiArrowUpLine, RiStopFill } from "@remixicon/react";
-import { type FormEvent, type KeyboardEvent, useRef } from "react";
+import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef } from "react";
 
 import { ComposerLoader } from "@/components/application/composer-loader/composer-loader";
 import {
@@ -15,6 +15,7 @@ import {
   VoiceRecordingBar,
 } from "@/components/application/agent-chat/voice-input";
 import { VoiceSttLanguageSelect } from "@/components/application/agent-chat/voice-stt-language-select";
+import { showToast } from "@/lib/notification-toast/show-toast";
 import type { ChatMessage } from "@/lib/types";
 import { cx } from "@/utils/cx";
 
@@ -28,6 +29,7 @@ const AHARIKA_COMPOSER_LOADER_COLORS: [string, string, string, string] = [
 
 const COMPOSER_PILL_HEIGHT_PX = 52;
 const COMPOSER_PILL_RADIUS_PX = COMPOSER_PILL_HEIGHT_PX / 2;
+const COMPOSER_INPUT_MAX_PX = 200;
 
 export interface AgentComposerProps {
   value: string;
@@ -51,17 +53,29 @@ export function AgentComposer({
   className,
 }: AgentComposerProps) {
   const localize = useTemplateCopy();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const sendOrPrompt = () => {
+    if (value.trim()) {
+      onSubmit();
+      return;
+    }
+    if (busy) return;
+    showToast({
+      title: "First type something before sending",
+      status: "information",
+    });
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onSubmit();
+    sendOrPrompt();
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      onSubmit();
+      sendOrPrompt();
     }
   };
 
@@ -145,11 +159,11 @@ function ComposerLoaderShell({
 
 type AgentComposerFormProps = {
   busy: boolean;
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onStop: () => void;
   onSubmit: (event: FormEvent) => void;
   onValueChange: (value: string) => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   voiceEnabled: boolean;
   delivery: "composer" | "send";
@@ -171,14 +185,20 @@ function AgentComposerForm({
   const showRecordingBar =
     phase === "recording" || (phase === "transcribing" && delivery === "send");
 
+  useLayoutEffect(() => {
+    const field = inputRef.current;
+    if (!field || showRecordingBar) return;
+    field.style.height = "0px";
+    field.style.height = `${Math.min(field.scrollHeight, COMPOSER_INPUT_MAX_PX)}px`;
+  }, [inputRef, showRecordingBar, value]);
+
   return (
     <form
       onSubmit={onSubmit}
       className={cx(
-        "flex w-full flex-col gap-1 rounded-full p-2",
-        showRecordingBar ? "min-h-[52px]" : "h-[52px]",
-        "bg-transparent shadow-none",
-        !showRecordingBar && "flex-row items-center gap-2.5",
+        "flex w-full flex-col gap-1 rounded-[26px] p-2",
+        "min-h-[52px] bg-transparent shadow-none",
+        !showRecordingBar && "flex-row items-end gap-2.5",
       )}
     >
       {showRecordingBar ? (
@@ -197,17 +217,17 @@ function AgentComposerForm({
           <label className="sr-only" htmlFor="agent-composer-input">
             Message
           </label>
-          <input
+          <textarea
             id="agent-composer-input"
             ref={inputRef}
-            type="text"
+            rows={1}
             value={value}
             onChange={(event) => onValueChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={phase === "transcribing" ? "Transcribing your voice…" : "What did you eat?"}
             autoComplete="off"
             disabled={busy || phase === "transcribing"}
-            className="h-5 min-w-0 flex-1 bg-transparent text-body-regular text-text-primary caret-text-primary outline-none placeholder:text-text-tertiary disabled:cursor-not-allowed disabled:opacity-60"
+            className="box-border max-h-[200px] min-h-9 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2 text-body-regular text-text-primary caret-text-primary outline-none placeholder:text-text-tertiary disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <div className="flex shrink-0 items-center ps-1.5">
@@ -224,8 +244,7 @@ function AgentComposerForm({
               <button
                 type="submit"
                 aria-label="Send message"
-                disabled={value.trim().length === 0}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90"
               >
                 <RiArrowUpLine className="size-5" aria-hidden />
               </button>

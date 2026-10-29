@@ -121,6 +121,21 @@ export function compareToGoals(totals: NutrientTotals, goals: NutrientTotals): N
   };
 }
 
+const WEEK_DAYS = 7;
+
+/** Daily targets stay as stored. A 7-day snapshot compares intake with seven days of those targets. */
+export function goalsForRange<T extends NutrientTotals>(goals: T, range: "today" | "7d"): T {
+  if (range === "today") return goals;
+  return {
+    ...goals,
+    calories: goals.calories * WEEK_DAYS,
+    proteinG: goals.proteinG * WEEK_DAYS,
+    carbsG: goals.carbsG * WEEK_DAYS,
+    fatG: goals.fatG * WEEK_DAYS,
+    fiberG: goals.fiberG * WEEK_DAYS,
+  };
+}
+
 export function nutrientProgressPercent(value: number, goal: number) {
   if (goal <= 0) return 0;
   return Math.min(100, (value / goal) * 100);

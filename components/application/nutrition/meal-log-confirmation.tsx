@@ -2,9 +2,14 @@
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ToolUIPart } from "ai";
-import { RiCheckLine, RiCloseLine, RiRestaurantLine } from "@remixicon/react";
-import { useCallback } from "react";
+import { RiCheckLine, RiCloseLine, RiEditLine, RiRestaurantLine } from "@remixicon/react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button, ButtonLink } from "@/components/base/buttons/button";
+import { IconButton } from "@/components/base/buttons/icon-button";
+import { Input } from "@/components/base/input/input";
+import { Select, SelectItem } from "@/components/base/select/select";
+import { useDirection } from "@/components/foundations/direction/direction";
 import { withBasePath } from "@/lib/constants";
 import { inspectMealCompleteness } from "@/lib/nutrition/meal-completeness";
 import type { ChatMessage } from "@/lib/types";
@@ -28,6 +33,25 @@ type UpdateMealInput = {
   mealId: string;
   items: MealItemPreview[];
 };
+
+const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+
+type PendingMealDraft = {
+  mealType: (typeof MEAL_TYPES)[number];
+  rawText: string;
+  items: MealItemPreview[];
+};
+
+function draftFromInput(input: LogMealInput | UpdateMealInput | null, isUpdate: boolean): PendingMealDraft {
+  const mealType = !isUpdate && input && "mealType" in input
+    ? MEAL_TYPES.find((type) => type === input.mealType) ?? "lunch"
+    : "lunch";
+  return {
+    items: (input?.items ?? []).map((item) => ({ ...item })),
+    mealType,
+    rawText: !isUpdate && input && "rawText" in input ? input.rawText : "",
+  };
+}
 
 function formatMealType(mealType: string) {
   return mealType.charAt(0).toUpperCase() + mealType.slice(1);
@@ -131,20 +155,202 @@ type MealLogConfirmationProps = {
     };
   };
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  onEditInput?: (input: LogMealInput | UpdateMealInput) => void;
   guestMode?: boolean;
   onGuestMealBlocked?: () => void;
 };
 
+function MealConfirmEditModal({
+  draft,
+  isUpdate,
+  onClose,
+  onSave,
+}: {
+  draft: PendingMealDraft;
+  isUpdate: boolean;
+  onClose: () => void;
+  onSave: (draft: PendingMealDraft) => void;
+}) {
+  const direction = useDirection();
+  const [mealType, setMealType] = useState(draft.mealType);
+  const [rawText, setRawText] = useState(draft.rawText);
+  const [items, setItems] = useState(draft.items);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  const save = () => {
+    const description = rawText.trim();
+    const nextItems = items.map((item) => ({
+      ...item,
+      name: item.name.trim(),
+      unit: item.unit.trim(),
+    }));
+    if ((!isUpdate && !description) || nextItems.length === 0) {
+      setError("Add a description and at least one item.");
+      return;
+    }
+    if (nextItems.some((item) => !item.name || !item.unit || !(item.quantity > 0))) {
+      setError("Each item needs a name, a unit, and a quantity above 0.");
+      return;
+    }
+    onSave({
+      items: nextItems.map((item, index) => {
+        const previous = draft.items[index];
+        const unchanged =
+          previous?.name === item.name &&
+          previous.quantity === item.quantity &&
+          previous.unit === item.unit;
+        return unchanged
+          ? item
+          : {
+              foodId: previous?.name === item.name ? item.foodId : undefined,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+            };
+      }),
+      mealType,
+      rawText: description,
+    });
+  };
+
+  return createPortal(
+    <div dir={direction} className="fixed inset-0 z-100 flex items-end justify-center p-2 sm:items-center sm:p-4" role="presentation">
+      <button
+        type="button"
+        aria-label="Close meal editor"
+        className="absolute inset-0 cursor-default bg-black/70"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit meal"
+        className="relative flex max-h-[min(614px,calc(100vh-16px))] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-3xl bg-background-full p-4 shadow-xs sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-title-3-medium text-text-primary">Edit meal</h2>
+            <p className="text-body-2-regular text-text-tertiary">
+              Change the details before they are saved.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className={cx(
+              "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full",
+              "bg-background-tertiary-default text-foreground-icon-secondary",
+              "outline-none focus-visible:ring-2 focus-visible:ring-border-focus-ring",
+            )}
+          >
+            <RiCloseLine className="size-4" aria-hidden />
+          </button>
+        </div>
+
+        {isUpdate ? null : (
+          <>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-body-2-medium text-text-secondary">Description</span>
+              <Input aria-label="Meal description" value={rawText} onChange={setRawText} />
+            </label>
+            <Select
+              aria-label="Meal type"
+              selectedKey={mealType}
+              onSelectionChange={(key) => {
+                if (MEAL_TYPES.includes(key as (typeof MEAL_TYPES)[number])) {
+                  setMealType(key as (typeof MEAL_TYPES)[number]);
+                }
+              }}
+            >
+              {MEAL_TYPES.map((type) => (
+                <SelectItem key={type} id={type} textValue={type}>
+                  <span className="capitalize">{type}</span>
+                </SelectItem>
+              ))}
+            </Select>
+          </>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <span className="text-body-2-medium text-text-secondary">Items</span>
+          {items.map((item, index) => (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem]" key={index}>
+              <Input
+                aria-label={`Item ${index + 1} name`}
+                value={item.name}
+                onChange={(value) => {
+                  setItems((current) => current.map((entry, entryIndex) => (
+                    entryIndex === index ? { ...entry, name: value } : entry
+                  )));
+                }}
+              />
+              <Input
+                aria-label={`Item ${index + 1} quantity`}
+                type="number"
+                inputMode="decimal"
+                value={String(item.quantity)}
+                onChange={(value) => {
+                  const quantity = Number.parseFloat(value);
+                  setItems((current) => current.map((entry, entryIndex) => (
+                    entryIndex === index
+                      ? { ...entry, quantity: Number.isFinite(quantity) ? quantity : 0 }
+                      : entry
+                  )));
+                }}
+              />
+              <Input
+                aria-label={`Item ${index + 1} unit`}
+                value={item.unit}
+                onChange={(value) => {
+                  setItems((current) => current.map((entry, entryIndex) => (
+                    entryIndex === index ? { ...entry, unit: value } : entry
+                  )));
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {error ? <p className="text-body-2-regular text-text-error-primary">{error}</p> : null}
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" size="small" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" size="small" onClick={save}>
+            Save changes
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function MealLogConfirmation({
   toolPart,
   addToolApprovalResponse,
+  onEditInput,
   guestMode = false,
   onGuestMealBlocked,
 }: MealLogConfirmationProps) {
   const isUpdate = toolPart.type === "tool-updateMeal";
   const logInput = isUpdate ? null : parseLogMealInput(toolPart.input);
   const updateInput = isUpdate ? parseUpdateMealInput(toolPart.input) : null;
-  const items = logInput?.items ?? updateInput?.items ?? [];
+  const source = logInput ?? updateInput;
+  const [editing, setEditing] = useState(false);
+  const items = source?.items ?? [];
   const completeness = logInput
     ? inspectMealCompleteness({ items: logInput.items, rawText: logInput.rawText })
     : null;
@@ -264,6 +470,14 @@ export function MealLogConfirmation({
             </>
           )}
         </div>
+        {canRespond && source ? (
+          <IconButton
+            icon={RiEditLine}
+            size="small"
+            aria-label="Edit meal"
+            onClick={() => setEditing(true)}
+          />
+        ) : null}
       </div>
       {canRespond ? (
         guestMode ? (
@@ -294,6 +508,25 @@ export function MealLogConfirmation({
             </Button>
           </div>
         )
+      ) : null}
+      {editing && source ? (
+        <MealConfirmEditModal
+          draft={draftFromInput(source, isUpdate)}
+          isUpdate={isUpdate}
+          onClose={() => setEditing(false)}
+          onSave={(draft) => {
+            if (updateInput) {
+              onEditInput?.({ items: draft.items, mealId: updateInput.mealId });
+            } else {
+              onEditInput?.({
+                items: draft.items,
+                mealType: draft.mealType,
+                rawText: draft.rawText,
+              });
+            }
+            setEditing(false);
+          }}
+        />
       ) : null}
     </div>
   );

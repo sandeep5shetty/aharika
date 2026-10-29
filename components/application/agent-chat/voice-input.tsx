@@ -196,7 +196,7 @@ function PureVoiceRecordingBar() {
 
       <button
         aria-label="Send voice message"
-        className="hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-button-primary text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         disabled={isTranscribing}
         onClick={() => finishRecording("send")}
         type="button"

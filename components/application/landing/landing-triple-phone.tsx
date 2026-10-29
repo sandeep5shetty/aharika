@@ -135,7 +135,7 @@ export function LandingTriplePhone() {
     hidden: { opacity: 0, y: "50%", scale: 0.85 },
     visible: {
       opacity: 1,
-      y: "10%",
+      y: "4%",
       scale: 1,
       transition: { ...common },
     },
@@ -145,7 +145,7 @@ export function LandingTriplePhone() {
     hidden: { opacity: 0, y: "55%", x: "0%", rotate: 0, scale: 0.85 },
     visible: {
       opacity: 0.88,
-      y: "18%",
+      y: "10%",
       x: dir === "left" ? "-50%" : "50%",
       rotate: dir === "left" ? -10 : 10,
       scale: 1,

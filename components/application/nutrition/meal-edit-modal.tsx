@@ -12,7 +12,16 @@ import { withBasePath } from "@/lib/constants";
 import { NUTRITION_DATA_UPDATED } from "@/lib/nutrition/events";
 import { cx } from "@/utils/cx";
 
+import type { MealItemBreakdown } from "@/lib/types";
 import type { NutritionMealRow } from "./nutrition-meals-table";
+
+export type SavedMealEdit = NutritionMealRow & {
+  items?: MealItemBreakdown[];
+  proteinG?: number;
+  carbsG?: number;
+  fatG?: number;
+  fiberG?: number;
+};
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 const CONFIDENCE_OPTIONS = [
@@ -25,10 +34,16 @@ const PORTION_PRESETS = ["0.5", "1", "1.5", "2"] as const;
 type MealEditModalProps = {
   meal: NutritionMealRow | null;
   onClose: () => void;
-  onSaved: (meal: NutritionMealRow) => void;
+  onSaved: (meal: SavedMealEdit) => void;
+  hint?: string;
 };
 
-export function MealEditModal({ meal, onClose, onSaved }: MealEditModalProps) {
+export function MealEditModal({
+  meal,
+  onClose,
+  onSaved,
+  hint = "Update the diary entry without leaving the dashboard.",
+}: MealEditModalProps) {
   const direction = useDirection();
   const [description, setDescription] = useState("");
   const [mealType, setMealType] = useState<(typeof MEAL_TYPES)[number]>("lunch");
@@ -87,16 +102,26 @@ export function MealEditModal({ meal, onClose, onSaved }: MealEditModalProps) {
       }
       const data = (await response.json()) as {
         calories: number;
+        carbsG: number;
         confidence: string;
+        fatG: number;
+        fiberG: number;
+        items?: MealItemBreakdown[];
         mealType: string;
+        proteinG: number;
         rawText: string;
       };
       onSaved({
         ...meal,
         calories: data.calories,
+        carbsG: data.carbsG,
         confidence: data.confidence,
         description: data.rawText,
+        fatG: data.fatG,
+        fiberG: data.fiberG,
+        items: data.items,
         mealType: data.mealType,
+        proteinG: data.proteinG,
       });
       window.dispatchEvent(new Event(NUTRITION_DATA_UPDATED));
       onClose();
@@ -124,9 +149,7 @@ export function MealEditModal({ meal, onClose, onSaved }: MealEditModalProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-title-3-medium text-text-primary">Edit meal</h2>
-            <p className="text-body-2-regular text-text-tertiary">
-              Update the diary entry without leaving the dashboard.
-            </p>
+            <p className="text-body-2-regular text-text-tertiary">{hint}</p>
           </div>
           <button
             type="button"

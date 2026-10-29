@@ -5,7 +5,7 @@
  */
 import { config } from "dotenv";
 import { subDays } from "date-fns";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import path from "node:path";
 import postgres from "postgres";
@@ -120,14 +120,22 @@ async function main() {
     process.exit(1);
   }
 
-  const windowStart = istLoggedAt(DAYS - 1, 0, 0);
+  // Last 14 full days, ending yesterday. Today's logs stay as they are.
+  const windowStart = istLoggedAt(DAYS, 0, 0);
+  const todayStart = istLoggedAt(0, 0, 0);
   const removed = await db
     .delete(meal)
-    .where(and(eq(meal.userId, account.id), gte(meal.loggedAt, windowStart)))
+    .where(
+      and(
+        eq(meal.userId, account.id),
+        gte(meal.loggedAt, windowStart),
+        lt(meal.loggedAt, todayStart),
+      ),
+    )
     .returning({ id: meal.id });
 
   let inserted = 0;
-  for (let daysAgo = 0; daysAgo < DAYS; daysAgo += 1) {
+  for (let daysAgo = 1; daysAgo <= DAYS; daysAgo += 1) {
     // Offset the older 7 days so week-over-week deltas are not always 0% (same plan repeated).
     const planIndex =
       daysAgo >= 7
@@ -155,7 +163,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${inserted} Indian meals for ${TARGET_EMAIL} (${account.name ?? "user"}) over the last ${DAYS} days.`,
+    `Seeded ${inserted} Indian meals for ${TARGET_EMAIL} (${account.name ?? "user"}) over the last ${DAYS} days, excluding today.`,
   );
   if (removed.length > 0) {
     console.log(`Replaced ${removed.length} existing meal(s) in that window.`);
