@@ -8,6 +8,7 @@ import { showToast } from "@/lib/notification-toast/show-toast";
 
 let generation = 0;
 let speakingId: string | null = null;
+let generating = false;
 let audio: HTMLAudioElement | null = null;
 let objectUrls: string[] = [];
 let abortController: AbortController | null = null;
@@ -43,6 +44,7 @@ export function stopReadout() {
     window.speechSynthesis?.cancel();
   }
   speakingId = null;
+  generating = false;
   notify();
 }
 
@@ -101,6 +103,21 @@ export function useReadoutActive(id: string): boolean {
   return active;
 }
 
+export function useReadoutGenerating(): boolean {
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setActive(generating);
+    listeners.add(sync);
+    sync();
+    return () => {
+      listeners.delete(sync);
+    };
+  }, []);
+
+  return active;
+}
+
 export async function toggleReadout(id: string, text: string) {
   if (speakingId === id) {
     stopReadout();
@@ -119,6 +136,7 @@ export async function toggleReadout(id: string, text: string) {
   stopReadout();
   const token = generation;
   speakingId = id;
+  generating = true;
   notify();
 
   const controller = new AbortController();
@@ -152,6 +170,8 @@ export async function toggleReadout(id: string, text: string) {
     if (parts.length === 0) {
       throw new Error("Sarvam did not return any audio.");
     }
+    generating = false;
+    notify();
     for (const part of parts) {
       if (token !== generation) {
         return;
@@ -164,6 +184,8 @@ export async function toggleReadout(id: string, text: string) {
     if (token !== generation || (error instanceof DOMException && error.name === "AbortError")) {
       return;
     }
+    generating = false;
+    notify();
     showToast({
       title: "Could not read that aloud",
       description: error instanceof Error ? error.message : "Please try again.",
@@ -171,6 +193,7 @@ export async function toggleReadout(id: string, text: string) {
     });
   } finally {
     if (token === generation) {
+      generating = false;
       releaseAudio();
       speakingId = null;
       abortController = null;

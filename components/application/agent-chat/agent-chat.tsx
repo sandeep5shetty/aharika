@@ -25,6 +25,7 @@ import {
   AgentChatTurn,
 } from "@/components/application/agent-chat/agent-chat-message";
 import { AgentComposer } from "@/components/application/agent-chat/agent-composer";
+import { ReadoutGeneratingToast } from "@/components/application/agent-chat/readout-generating-toast";
 import { AgentThinking } from "@/components/application/agent-thinking/agent-thinking";
 import { useStarterBase, useStarterNav } from "@/components/application/app-shell/app-shell";
 import { NotificationBell } from "@/components/application/app-shell/notification-bell";
@@ -774,7 +775,8 @@ export function AgentChat({
                   </div>
                 </div>
 
-                <div className="shrink-0 px-3 pb-3">
+                <div className="relative shrink-0 px-3 pb-3">
+                  <ReadoutGeneratingToast />
                   <div className="mx-auto w-full max-w-3xl">
                     {!demoActive && isGuest && (
                       <p className="mb-2 rounded-xl border border-border-button-default bg-background-primary-default px-3 py-2 text-caption-1-regular text-text-secondary">

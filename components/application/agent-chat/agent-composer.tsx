@@ -113,9 +113,9 @@ export function AgentComposer({
       )}
 
       {voiceEnabled ? (
-        <div className="flex h-[26px] w-full items-center justify-end gap-2">
-          <VoiceSpeakerSelect />
+        <div className="flex h-[26px] w-full items-center justify-between gap-2 px-2">
           <VoiceSttLanguageSelect />
+          <VoiceSpeakerSelect />
         </div>
       ) : null}
     </div>
